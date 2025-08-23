@@ -5,8 +5,29 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def flavorProperties = new Properties()
+def flavorFile = rootProject.file('flavors.properties')
+if (flavorFile.exists()) {
+    flavorFile.withReader('UTF-8') { reader ->
+        flavorProperties.load(reader)
+    }
+}
+
+def mainApplicationId = flavorProperties.getProperty("main.applicationId")
+def mainAppVersionCode = flavorProperties.getProperty('main.versionCode')
+def mainAppVersionName = flavorProperties.getProperty('main.versionName')
+def mainAppName = flavorProperties.getProperty('main.appName')
+
+def keystoreProperties = new Properties()
+def keystoreFile = rootProject.file('signing.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
 android {
-    namespace = "com.example.flutter_github_actions"
+    namespace = "com.gnkbros.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,22 +41,81 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.flutter_github_actions"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId mainApplicationId
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode mainAppVersionCode.toInteger()
+        versionName mainAppVersionName
+
+        // Pass app name to manifest
+        manifestPlaceholders = [
+                appName : mainAppName,
+                applicationName  : "io.flutter.app.FlutterApplication"
+        ]
+    }
+
+    signingConfigs {
+        // Helper closure to create signing config per flavor
+        def createSigningConfig = { flavorName ->
+            if (keystoreProperties["${flavorName}.storeFile"] &&
+                    keystoreProperties["${flavorName}.storePassword"] &&
+                    keystoreProperties["${flavorName}.keyAlias"] &&
+                    keystoreProperties["${flavorName}.keyPassword"]) {
+
+                create(flavorName) {
+                    storeFile file(keystoreProperties["${flavorName}.storeFile"])
+                    storePassword keystoreProperties["${flavorName}.storePassword"]
+                    keyAlias keystoreProperties["${flavorName}.keyAlias"]
+                    keyPassword keystoreProperties["${flavorName}.keyPassword"]
+                    logger.lifecycle("[signingConfigs] flavorName : ${flavorName} KeyAlias: ${keyAlias}")
+                }
+            }
+        }
+
+        // Create signing configs for all your flavors
+        createSigningConfig("release")
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+        debug {
+            signingConfig signingConfigs.debug
         }
+
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            zipAlignEnabled true
+
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
+        }
+    }
+    flavorDimensions "app"
+    productFlavors {
+        // Helper closure to create flavor
+        def createFlavor = { flavorName ->
+            if (flavorProperties["${flavorName}.namespace"] &&
+                    flavorProperties["${flavorName}.applicationId"] &&
+                    flavorProperties["${flavorName}.versionCode"] &&
+                    flavorProperties["${flavorName}.versionName"]) {
+
+                create(flavorName) {
+                    namespace flavorProperties["${flavorName}.namespace"]
+                    applicationId flavorProperties["${flavorName}.applicationId"]
+                    versionCode flavorProperties["${flavorName}.versionCode"]?.toInteger()
+                    versionName flavorProperties["${flavorName}.versionName"]
+                    manifestPlaceholders = [
+                            appName : keystoreProperties["${flavorName}.appName"],
+                            applicationName  : "io.flutter.app.FlutterApplication"
+                    ]
+                    signingConfig signingConfigs.findByName(flavorName)
+                    logger.lifecycle("[productFlavors] SigningConfig: ${signingConfig?.name}")
+                }
+            }
+        }
+
+//        createFlavor("main")
     }
 }
 
