@@ -56,6 +56,9 @@ unlinked_spec.ds
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 *.jks
+/android/signing.properties
+/android/keystore/*.jks
+/android/keystore/*.keystore
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -119,3 +122,4 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 
 .idea/*
+ruff.txt
