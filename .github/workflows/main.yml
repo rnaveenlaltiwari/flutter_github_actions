@@ -25,31 +25,31 @@ jobs:
 
       - run: flutter pub get
 
-#      - name: Setup Main Keystore
-#        run: |
-#          mkdir -p android/keystore
-#          echo "$MAIN_KEYSTORE_BASE64" | base64 --decode > android/keystore/main.jks
-#          cat > android/signing.properties <<EOF
-#          release.storeFile=android/keystore/main.jks
-#          release.storePassword=$MAIN_KEYSTORE_PASSWORD
-#          release.keyAlias=$MAIN_KEY_ALIAS
-#          release.keyPassword=$MAIN_KEY_PASSWORD
-#          EOF
-#        env:
-#          MAIN_KEYSTORE_BASE64: ${{ secrets.MAIN_KEYSTORE_BASE64 }}
-#          MAIN_KEYSTORE_PASSWORD: ${{ secrets.MAIN_KEYSTORE_PASSWORD }}
-#          MAIN_KEY_ALIAS: ${{ secrets.MAIN_KEY_ALIAS }}
-#          MAIN_KEY_PASSWORD: ${{ secrets.MAIN_KEY_PASSWORD }}
-#
-#      - name: Building Main Release APK
-#        run: flutter build apk --release -t lib/main.dart
-#
-#      - name: Building Main Release AAB
-#        run: flutter build appbundle --release -t lib/main.dart
+      - name: Setup Main Keystore
+        run: |
+          mkdir -p android/keystore
+          echo "$MAIN_KEYSTORE_BASE64" | base64 --decode > android/keystore/main.jks
+          cat > android/signing.properties <<EOF
+          release.storeFile=android/keystore/main.jks
+          release.storePassword=$MAIN_KEYSTORE_PASSWORD
+          release.keyAlias=$MAIN_KEY_ALIAS
+          release.keyPassword=$MAIN_KEY_PASSWORD
+          EOF
+        env:
+          MAIN_KEYSTORE_BASE64: ${{ secrets.MAIN_KEYSTORE_BASE64 }}
+          MAIN_KEYSTORE_PASSWORD: ${{ secrets.MAIN_KEYSTORE_PASSWORD }}
+          MAIN_KEY_ALIAS: ${{ secrets.MAIN_KEY_ALIAS }}
+          MAIN_KEY_PASSWORD: ${{ secrets.MAIN_KEY_PASSWORD }}
+
+      - name: Building Main Release APK
+        run: echo "Will check later" #flutter build apk --release -t lib/main.dart
+
+      - name: Building Main Release AAB
+        run: echo "Will check later" #flutter build appbundle --release -t lib/main.dart
 
       - name: Setup Checkcircle Flavor Keystore
         run: |
-          mkdir -p android/keystore
+#          mkdir -p android/keystore
           echo "$CHECKCIRCLE_KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
           cat > android/signing.properties <<EOF
           checkcircle.storeFile=android/keystore/check-circle.jks
