@@ -16,6 +16,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
 
 flutter:
     uses-material-design: true
@@ -26,6 +27,12 @@ scripts:
   launch-icon-setup: |
     dart pub add dev:flutter_launcher_icons:
     flutter pub get
+  native-splash-setup: |
+    dart pub add dev:flutter_native_splash:
+    flutter pub get
   gen:
     launch-icon:
       dart run flutter_launcher_icons -f flutter_launcher_icons-main.yaml
+    native-splash:
+      dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-main.yaml --flavor main
+
