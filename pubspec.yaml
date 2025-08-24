@@ -34,7 +34,9 @@ scripts:
     launch-icon:
       main: dart run flutter_launcher_icons -f flutter_launcher_icons-main.yaml
       checkcircle: dart run flutter_launcher_icons -f flutter_launcher_icons-checkcircle.yaml
+      star: dart run flutter_launcher_icons -f flutter_launcher_icons-star.yaml
     native-splash:
       main: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-main.yaml --flavor main
-      checkcircle: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-checkcircle.yaml --flavor check-circle
+      checkcircle: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-checkcircle.yaml --flavor checkcircle
+      star: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-star.yaml --flavor star
 

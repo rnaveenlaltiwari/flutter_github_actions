@@ -75,6 +75,7 @@ android {
         // Create signing configs for all your flavors
         createSigningConfig("release")
         createSigningConfig("checkcircle")
+        createSigningConfig("star")
     }
 
     buildTypes {
@@ -117,6 +118,7 @@ android {
         }
 
         createFlavor("checkcircle")
+        createFlavor("star")
     }
 }
 
