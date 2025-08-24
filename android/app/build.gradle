@@ -76,6 +76,7 @@ android {
         createSigningConfig("release")
         createSigningConfig("checkcircle")
         createSigningConfig("star")
+        createSigningConfig("favorite")
     }
 
     buildTypes {
@@ -119,6 +120,7 @@ android {
 
         createFlavor("checkcircle")
         createFlavor("star")
+        createFlavor("favorite")
     }
 }
 
