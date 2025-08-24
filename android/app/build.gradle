@@ -73,7 +73,6 @@ android {
         }
 
         // Create signing configs for all your flavors
-        createSigningConfig("release")
         createSigningConfig("checkcircle")
         createSigningConfig("star")
         createSigningConfig("favorite")
