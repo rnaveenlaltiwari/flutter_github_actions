@@ -84,7 +84,7 @@ android {
         }
 
         release {
-            signingConfig signingConfigs.release
+//            signingConfig null
             minifyEnabled true
             shrinkResources true
             zipAlignEnabled true
