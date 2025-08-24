@@ -57,6 +57,7 @@ unlinked_spec.ds
 **/android/key.properties
 *.jks
 /android/signing.properties
+/android/keystore/*
 /android/keystore/*.jks
 /android/keystore/*.keystore
 
