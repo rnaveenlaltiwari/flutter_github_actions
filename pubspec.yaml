@@ -32,7 +32,9 @@ scripts:
     flutter pub get
   gen:
     launch-icon:
-      dart run flutter_launcher_icons -f flutter_launcher_icons-main.yaml
+      main: dart run flutter_launcher_icons -f flutter_launcher_icons-main.yaml
+      checkcircle: dart run flutter_launcher_icons -f flutter_launcher_icons-checkcircle.yaml
     native-splash:
-      dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-main.yaml --flavor main
+      main: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-main.yaml --flavor main
+      checkcircle: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-checkcircle.yaml --flavor check-circle
 
