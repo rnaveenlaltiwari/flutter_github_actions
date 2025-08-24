@@ -41,4 +41,14 @@ scripts:
       checkcircle: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-checkcircle.yaml --flavor checkcircle
       star: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-star.yaml --flavor star
       favorite: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-favorite.yaml --flavor favorite
-
+    base64:
+      linux:
+        main: base64 ./android/keystore/main.jks > ./android/keystore/main.jks.base64
+        checkcircle: base64 ./android/keystore/check-circle.jks > ./android/keystore/checkcircle.jks.base64
+        star: base64 ./android/keystore/star.jks > ./android/keystore/star.jks.base64
+        favorite: base64 ./android/keystore/favorite.jks > ./android/keystore/favorite.jks.base64
+      mac:
+        main: base64 -i ./android/keystore/main.jks -o ./android/keystore/main.jks.base64
+        checkcircle: base64 -i ./android/keystore/check-circle.jks -o ./android/keystore/check-circle.jks.base64
+        star: base64 -i ./android/keystore/star.jks -o ./android/keystore/star.jks.base64
+        favorite: base64 -i ./android/keystore/favorite.jks -o ./android/keystore/favorite.jks.base64
