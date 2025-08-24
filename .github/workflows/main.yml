@@ -1,4 +1,4 @@
-name: Hello World
+name: Generating AAB and APK with respect to flavor
 
 on:
   push:
@@ -18,7 +18,6 @@ jobs:
         with:
           channel: 'stable'
           flutter-version: '3.24.5'
-          # Enable caching: https://github.com/subosito/flutter-action?tab=readme-ov-file#caching
           cache: true
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
@@ -42,14 +41,13 @@ jobs:
           MAIN_KEY_PASSWORD: ${{ secrets.MAIN_KEY_PASSWORD }}
 
       - name: Building Main Release APK
-        run: echo "Will check later" #flutter build apk --release -t lib/main.dart
+        run: echo "Will check later" # flutter build apk --release -t lib/main.dart
 
       - name: Building Main Release AAB
-        run: echo "Will check later" #flutter build appbundle --release -t lib/main.dart
+        run: echo "Will check later" # flutter build appbundle --release -t lib/main.dart
 
       - name: Setup Checkcircle Flavor Keystore
         run: |
-#          mkdir -p android/keystore
           echo "$CHECKCIRCLE_KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
           cat > android/signing.properties <<EOF
           checkcircle.storeFile=android/keystore/check-circle.jks
