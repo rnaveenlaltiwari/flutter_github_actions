@@ -1,0 +1,17 @@
+# Flutter Native Splash configuration
+flutter_native_splash:
+  color: "#FFFFFF"
+  color_android: "#FFFFFF"
+  color_dark_android: "#121212"
+  color_ios: "#FFFFFF"
+  color_dark_ios: "#121212"
+  color_web: "#FFFFFF"
+  color_dark_web: "#121212"
+  image: "assets/check-circle/android/android-app-icon-foreground.png"
+  android_12:
+    color: "#FFFFFF"
+    icon_background_color: "#FFFFFF"
+    image: "assets/check-circle/android/android-app-icon-foreground.png"
+    color_dark: "#121212"
+    icon_background_color_dark: "#121212"
+    image_dark: "assets/check-circle/android/android-app-icon-foreground.png"
