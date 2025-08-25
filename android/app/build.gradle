@@ -111,8 +111,13 @@ android {
                             appName : flavorProperties["${flavorName}.appName"]
 //                            applicationName  : "io.flutter.app.FlutterApplication"
                     ]
-                    signingConfig signingConfigs.findByName(flavorName)
-                    logger.lifecycle("[productFlavors] SigningConfig: ${signingConfig?.name}")
+                    def sc = signingConfigs.findByName(flavorName)
+                    if (sc != null) {
+                        signingConfig sc
+                        logger.lifecycle("[productFlavors] SigningConfig applied: ${sc.name}")
+                    } else {
+                        logger.lifecycle("[productFlavors] No signingConfig found for ${flavorName}")
+                    }
                 }
             }
         }
