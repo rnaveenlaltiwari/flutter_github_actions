@@ -1,0 +1,13 @@
+# Flutter Launcher Icons configuration
+flutter_launcher_icons:
+  ios: true
+  android: true
+  image_path_ios: "assets/check-circle/common/app-icon.png"
+  image_path_ios_dark_transparent: "assets/check-circle/common/app-icon-transparent.png"
+  image_path_android: "assets/check-circle/android/android-app-icon.png"
+  adaptive_icon_background: "assets/check-circle/android/android-app-icon-background.png"
+  adaptive_icon_foreground: "assets/check-circle/android/android-app-icon-foreground.png"
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/check-circle/common/app-icon.png"

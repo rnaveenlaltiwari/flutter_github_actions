@@ -1,0 +1,133 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def flavorProperties = new Properties()
+def flavorFile = rootProject.file('flavors.properties')
+if (flavorFile.exists()) {
+    flavorFile.withReader('UTF-8') { reader ->
+        flavorProperties.load(reader)
+    }
+}
+
+def mainApplicationId = flavorProperties.getProperty("main.applicationId")
+def mainAppVersionCode = flavorProperties.getProperty('main.versionCode')
+def mainAppVersionName = flavorProperties.getProperty('main.versionName')
+def mainAppName = flavorProperties.getProperty('main.appName')
+
+def keystoreProperties = new Properties()
+def keystoreFile = rootProject.file('signing.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
+android {
+    namespace = "com.gnkbros.app"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        applicationId mainApplicationId
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode mainAppVersionCode.toInteger()
+        versionName mainAppVersionName
+
+        // Pass app name to manifest
+        manifestPlaceholders = [
+                appName : mainAppName,
+                applicationName  : "io.flutter.app.FlutterApplication"
+        ]
+    }
+
+    signingConfigs {
+        // Helper closure to create signing config per flavor
+        def createSigningConfig = { flavorName ->
+            if (keystoreProperties["${flavorName}.storeFile"] &&
+                    keystoreProperties["${flavorName}.storePassword"] &&
+                    keystoreProperties["${flavorName}.keyAlias"] &&
+                    keystoreProperties["${flavorName}.keyPassword"]) {
+
+                create(flavorName) {
+                    storeFile file(keystoreProperties["${flavorName}.storeFile"])
+                    storePassword keystoreProperties["${flavorName}.storePassword"]
+                    keyAlias keystoreProperties["${flavorName}.keyAlias"]
+                    keyPassword keystoreProperties["${flavorName}.keyPassword"]
+                    logger.lifecycle("[signingConfigs] flavorName : ${flavorName} KeyAlias: ${keyAlias}")
+                }
+            }
+        }
+
+        // Create signing configs for all your flavors
+        createSigningConfig("checkcircle")
+        createSigningConfig("star")
+        createSigningConfig("favorite")
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+
+        release {
+//            signingConfig null
+            minifyEnabled true
+            shrinkResources true
+            zipAlignEnabled true
+
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
+        }
+    }
+    flavorDimensions "app"
+    productFlavors {
+        // Helper closure to create flavor
+        def createFlavor = { flavorName ->
+            if (flavorProperties["${flavorName}.namespace"] &&
+                    flavorProperties["${flavorName}.applicationId"] &&
+                    flavorProperties["${flavorName}.versionCode"] &&
+                    flavorProperties["${flavorName}.versionName"]) {
+
+                create(flavorName) {
+                    namespace flavorProperties["${flavorName}.namespace"]
+                    applicationId flavorProperties["${flavorName}.applicationId"]
+                    versionCode flavorProperties["${flavorName}.versionCode"]?.toInteger()
+                    versionName flavorProperties["${flavorName}.versionName"]
+                    manifestPlaceholders = [
+                            appName : flavorProperties["${flavorName}.appName"]
+//                            applicationName  : "io.flutter.app.FlutterApplication"
+                    ]
+                    def sc = signingConfigs.findByName(flavorName)
+                    if (sc != null) {
+                        signingConfig sc
+                        logger.lifecycle("[productFlavors] SigningConfig applied: ${sc.name}")
+                    } else {
+                        logger.lifecycle("[productFlavors] No signingConfig found for ${flavorName}")
+                    }
+                }
+            }
+        }
+
+        createFlavor("checkcircle")
+        createFlavor("star")
+        createFlavor("favorite")
+    }
+}
+
+flutter {
+    source = "../.."
+}
