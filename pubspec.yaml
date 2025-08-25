@@ -17,6 +17,8 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.4
+  envied_generator: ^1.1.1
+  build_runner: ^2.4.13
 
 flutter:
     uses-material-design: true
@@ -30,6 +32,15 @@ scripts:
   native-splash-setup: |
     dart pub add dev:flutter_native_splash:
     flutter pub get
+  env-setup: |
+    dart pub add dev:build_runner:
+    dart pub add dev:envied_generator:
+    flutter pub get
+  gen-env: |
+    dart run build_runner clean
+    dart run build_runner build --delete-conflicting-outputs
+
+
   gen:
     launch-icon:
       main: dart run flutter_launcher_icons -f flutter_launcher_icons-main.yaml
@@ -43,11 +54,13 @@ scripts:
       favorite: dart run flutter_native_splash:create --path=./native_splash_yml/flutter_native_splash-favorite.yaml --flavor favorite
     base64:
       linux:
+        env: base64 ./lib/env.g.dart > ./lib/env.g.dart.base64
         main: base64 ./android/keystore/main.jks > ./android/keystore/main.jks.base64
         checkcircle: base64 ./android/keystore/check-circle.jks > ./android/keystore/checkcircle.jks.base64
         star: base64 ./android/keystore/star.jks > ./android/keystore/star.jks.base64
         favorite: base64 ./android/keystore/favorite.jks > ./android/keystore/favorite.jks.base64
       mac:
+        env: base64 -i ./lib/env.g.dart -o ./lib/env.g.dart.base64
         main: base64 -i ./android/keystore/main.jks -o ./android/keystore/main.jks.base64
         checkcircle: base64 -i ./android/keystore/check-circle.jks -o ./android/keystore/check-circle.jks.base64
         star: base64 -i ./android/keystore/star.jks -o ./android/keystore/star.jks.base64

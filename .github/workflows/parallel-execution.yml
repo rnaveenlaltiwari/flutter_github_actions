@@ -1,10 +1,13 @@
 name: Generating Parallel AAB and APK with respect to flavor
 
 on:
+  workflow_dispatch:   # this enables manual trigger
   push:
     branches:
-      - main
+      - main   # runs on push to main branch
   pull_request:
+    branches:
+      - main  # PR must target main
 
 jobs:
   # Common setup step (matrix not needed since signing differs per flavor)
@@ -36,6 +39,10 @@ jobs:
           channel: 'stable'
           flutter-version: ${{ needs.setup.outputs.flutter-version }}
       - run: flutter pub get
+
+      - name: Setup Env Generate Dart
+        run: |
+          echo "$ENV_G_DART" | base64 --decode > lib/env.g.dart
 
       - name: Setup Keystore
         run: |
@@ -76,6 +83,10 @@ jobs:
           flutter-version: ${{ needs.setup.outputs.flutter-version }}
       - run: flutter pub get
 
+      - name: Setup Env Generate Dart
+        run: |
+          echo "$ENV_G_DART" | base64 --decode > lib/env.g.dart
+
       - name: Setup Keystore
         run: |
           mkdir -p android/keystore
@@ -114,6 +125,10 @@ jobs:
           channel: 'stable'
           flutter-version: ${{ needs.setup.outputs.flutter-version }}
       - run: flutter pub get
+
+      - name: Setup Env Generate Dart
+        run: |
+          echo "$ENV_G_DART" | base64 --decode > lib/env.g.dart
 
       - name: Setup Keystore
         run: |
