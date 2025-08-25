@@ -28,7 +28,16 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text("Check Circle : ${Env.secretKey}"),
+        child: Text(
+          "Check Circle :\n"
+          "key: ${Env.secretKey}\n"
+          "url: ${Env.baseURL}",
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

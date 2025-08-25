@@ -40,9 +40,18 @@ jobs:
           flutter-version: ${{ needs.setup.outputs.flutter-version }}
       - run: flutter pub get
 
-      - name: Setup Env Generate Dart
+      # Setup .env file from base64 secrets
+      - name: Setup .env file
         run: |
-          echo "$ENV_G_DART" | base64 --decode > lib/env.g.dart
+          echo "SECRET_KEY=$(echo $SECRET_KEY_BASE64 | base64 --decode)" >> .env
+          echo "BASE_URL=$(echo $BASE_URL_BASE64 | base64 --decode)" >> .env
+        env:
+          SECRET_KEY_BASE64: ${{ secrets.SECRET_KEY_BASE64 }}
+          BASE_URL: ${{ secrets.BASE_URL_BASE64 }}
+
+      # Generate env.g.dart using Envied
+      - name: Generate env.g.dart with Envied
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Setup Keystore
         run: |
@@ -83,9 +92,18 @@ jobs:
           flutter-version: ${{ needs.setup.outputs.flutter-version }}
       - run: flutter pub get
 
-      - name: Setup Env Generate Dart
+      # Setup .env file from base64 secrets
+      - name: Setup .env file
         run: |
-          echo "$ENV_G_DART" | base64 --decode > lib/env.g.dart
+          echo "SECRET_KEY=$(echo $SECRET_KEY_BASE64 | base64 --decode)" >> .env
+          echo "BASE_URL=$(echo $BASE_URL_BASE64 | base64 --decode)" >> .env
+        env:
+          SECRET_KEY_BASE64: ${{ secrets.SECRET_KEY_BASE64 }}
+          BASE_URL: ${{ secrets.BASE_URL_BASE64 }}
+
+      # Generate env.g.dart using Envied
+      - name: Generate env.g.dart with Envied
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Setup Keystore
         run: |
@@ -126,9 +144,18 @@ jobs:
           flutter-version: ${{ needs.setup.outputs.flutter-version }}
       - run: flutter pub get
 
-      - name: Setup Env Generate Dart
+      # Setup .env file from base64 secrets
+      - name: Setup .env file
         run: |
-          echo "$ENV_G_DART" | base64 --decode > lib/env.g.dart
+          echo "SECRET_KEY=$(echo $SECRET_KEY_BASE64 | base64 --decode)" >> .env
+          echo "BASE_URL=$(echo $BASE_URL_BASE64 | base64 --decode)" >> .env
+        env:
+          SECRET_KEY_BASE64: ${{ secrets.SECRET_KEY_BASE64 }}
+          BASE_URL: ${{ secrets.BASE_URL_BASE64 }}
+
+      # Generate env.g.dart using Envied
+      - name: Generate env.g.dart with Envied
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Setup Keystore
         run: |
