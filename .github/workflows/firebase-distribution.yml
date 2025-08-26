@@ -98,7 +98,7 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_DISTRIBUTION_CHECKCIRCLE_CREDENTIAL_FILE_CONTENT }}
           groups: ${{ secrets.FIREBASE_CHECKCIRCLE_QA_GROUP }}
           releaseNotes: "GitHub Actions automated build (APK)"
-          file: build/app/outputs/flutter-apk/*checkcircle*.apk
+          file: build/app/outputs/flutter-apk/app-checkcircle-release.apk
 
   # ---------------- Favorite ----------------
   build-favorite:
@@ -160,7 +160,7 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_DISTRIBUTION_FAVORITE_CREDENTIAL_FILE_CONTENT }}
           groups: ${{ secrets.FIREBASE_FAVORITE_QA_GROUP }}
           releaseNotes: "GitHub Actions automated build (APK)"
-          file: build/app/outputs/flutter-apk/*favorite*.apk
+          file: build/app/outputs/flutter-apk/app-favorite-release.apk
 
   # ---------------- Star ----------------
   build-star:
@@ -222,4 +222,4 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_DISTRIBUTION_STAR_CREDENTIAL_FILE_CONTENT }}
           groups: ${{ secrets.FIREBASE_STAR_QA_GROUP }}
           releaseNotes: "GitHub Actions automated build (APK)"
-          file: build/app/outputs/flutter-apk/*star*.apk
+          file: build/app/outputs/flutter-apk/app-star-release.apk
