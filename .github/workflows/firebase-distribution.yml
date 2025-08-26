@@ -1,4 +1,4 @@
-name: Generating Parallel AAB and APK with respect to flavor
+name: Parallel Firebase Distribution for App Flavors
 
 on:
   workflow_dispatch:   # this enables manual trigger
