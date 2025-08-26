@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "816245006361",
+    "project_id": "favorite-31035",
+    "storage_bucket": "favorite-31035.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:816245006361:android:d96bf6330b712425a3ca88",
+        "android_client_info": {
+          "package_name": "com.gnkbros.favorite"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6vipk3fqlkMIuFLmduqiifVQvF6ICX4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

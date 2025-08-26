@@ -127,3 +127,4 @@ ruff.txt
 .env
 /lib/env.g.dart
 /lib/env.g.dart.base64
+*.iml
