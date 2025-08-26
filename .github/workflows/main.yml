@@ -2,12 +2,12 @@ name: Generating AAB and APK with respect to flavor
 
 on:
   workflow_dispatch:   # this enables manual trigger
-  push:
-    branches:
-      - main   # runs on push to main branch
-  pull_request:
-    branches:
-      - main  # PR must target main
+#  push:
+#    branches:
+#      - main   # runs on push to main branch
+#  pull_request:
+#    branches:
+#      - main  # PR must target main
 
 jobs:
   build-generation:
