@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  firebase_core: 3.10.0
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +40,9 @@ scripts:
   gen-env: |
     dart run build_runner clean
     dart run build_runner build --delete-conflicting-outputs
+  firebase-setup: |
+    dart pub add firebase_core:
+    flutter pub get
 
 
   gen:

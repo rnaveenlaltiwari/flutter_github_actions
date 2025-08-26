@@ -2,12 +2,23 @@ name: Generating Parallel AAB and APK with respect to flavor
 
 on:
   workflow_dispatch:   # this enables manual trigger
-  push:
-    branches:
-      - main   # runs on push to main branch
-  pull_request:
-    branches:
-      - main  # PR must target main
+    inputs:
+      flavor:
+        description: 'Choose which flavor to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+#  push:
+#    branches:
+#      - main   # runs on push to main branch
+#  pull_request:
+#    branches:
+#      - main  # PR must target main
 
 jobs:
   # Common setup step (matrix not needed since signing differs per flavor)
@@ -30,6 +41,7 @@ jobs:
   # ---------------- Checkcircle ----------------
   build-checkcircle:
     needs: setup
+    if: ${{ github.event.inputs.flavor == 'checkcircle' || github.event.inputs.flavor == 'all' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +59,7 @@ jobs:
           echo "BASE_URL=$(echo $BASE_URL_BASE64 | base64 --decode)" >> .env
         env:
           SECRET_KEY_BASE64: ${{ secrets.SECRET_KEY_BASE64 }}
-          BASE_URL: ${{ secrets.BASE_URL_BASE64 }}
+          BASE_URL_BASE64: ${{ secrets.BASE_URL_BASE64 }}
 
       # Generate env.g.dart using Envied
       - name: Generate env.g.dart with Envied
@@ -82,6 +94,7 @@ jobs:
   # ---------------- Favorite ----------------
   build-favorite:
     needs: setup
+    if: ${{ github.event.inputs.flavor == 'favorite' || github.event.inputs.flavor == 'all' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,7 +112,7 @@ jobs:
           echo "BASE_URL=$(echo $BASE_URL_BASE64 | base64 --decode)" >> .env
         env:
           SECRET_KEY_BASE64: ${{ secrets.SECRET_KEY_BASE64 }}
-          BASE_URL: ${{ secrets.BASE_URL_BASE64 }}
+          BASE_URL_BASE64: ${{ secrets.BASE_URL_BASE64 }}
 
       # Generate env.g.dart using Envied
       - name: Generate env.g.dart with Envied
@@ -134,6 +147,7 @@ jobs:
   # ---------------- Star ----------------
   build-star:
     needs: setup
+    if: ${{ github.event.inputs.flavor == 'star' || github.event.inputs.flavor == 'all' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -151,7 +165,7 @@ jobs:
           echo "BASE_URL=$(echo $BASE_URL_BASE64 | base64 --decode)" >> .env
         env:
           SECRET_KEY_BASE64: ${{ secrets.SECRET_KEY_BASE64 }}
-          BASE_URL: ${{ secrets.BASE_URL_BASE64 }}
+          BASE_URL_BASE64: ${{ secrets.BASE_URL_BASE64 }}
 
       # Generate env.g.dart using Envied
       - name: Generate env.g.dart with Envied

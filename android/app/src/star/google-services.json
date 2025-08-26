@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "157757305450",
+    "project_id": "star-c5c80",
+    "storage_bucket": "star-c5c80.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157757305450:android:9139895a75fb3179359013",
+        "android_client_info": {
+          "package_name": "com.gnkbros.star"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcsulr6biW5zr7NjPcvXB2_KiPz6hSHtk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
