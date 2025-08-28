@@ -1,4 +1,4 @@
-name: Parallel Firebase Distribution for App Flavors
+name: Parallel Store Publisher for App Flavors
 
 on:
   workflow_dispatch:   # this enables manual trigger
