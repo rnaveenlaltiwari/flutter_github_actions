@@ -128,3 +128,5 @@ ruff.txt
 /lib/env.g.dart
 /lib/env.g.dart.base64
 *.iml
+
+ci/config.json
