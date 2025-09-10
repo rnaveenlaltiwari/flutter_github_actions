@@ -101,11 +101,20 @@ jobs:
       - name: Read Firebase config from config.json
         id: read-config
         run: |
-          cat config.json
-          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
+          pwd
+          ls -l config.json
+          head -20 config.json
+          jq '.' config.json
+
+          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json) || { echo "Failed to extract app_id"; exit 1; }
           GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
-          echo "APP_ID = $APP_ID"
-          echo "GROUPS = $GROUPS"
+          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
+
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
+          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
+          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 #          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
 
 #          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
