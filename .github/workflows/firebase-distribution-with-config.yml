@@ -107,7 +107,9 @@ jobs:
 
           echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
           echo "groups=$GROUPS" >> $GITHUB_OUTPUT
-          echo "service_credentials=$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
+          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT  
 
       - name: Upload to Firebase App Distribution (Checkcircle APK)
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -195,7 +197,9 @@ jobs:
 
           echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
           echo "groups=$GROUPS" >> $GITHUB_OUTPUT
-          echo "service_credentials=$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
+          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT  
 
       - name: Upload to Firebase App Distribution (Favorite APK)
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -283,7 +287,9 @@ jobs:
 
           echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
           echo "groups=$GROUPS" >> $GITHUB_OUTPUT
-          echo "service_credentials=$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
+          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT  
 
       - name: Upload to Firebase App Distribution (Star APK)
         uses: wzieba/Firebase-Distribution-Github-Action@v1
