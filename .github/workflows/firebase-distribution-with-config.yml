@@ -106,7 +106,7 @@ jobs:
           jq '.apps.checkcircle.firebase.android.app_id' config.json || echo "Path not found!"
           jq '.apps.checkcircle.firebase.android.groups' config.json || echo "Path not found!"
           jq '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json || echo "Path not found!"
-
+          F_APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
 #          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // empty' config.json || echo "")
 #          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // empty' config.json || echo "")
 #
