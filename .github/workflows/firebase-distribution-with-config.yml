@@ -101,11 +101,14 @@ jobs:
       - name: Read Firebase config from config.json
         id: read-config
         run: |
-          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // ""' config.json)
-          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // ""' config.json)
-          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent // {}' config.json)
+          echo "Checking if the path exists..."
+          jq '.apps.checkcircle.firebase.android' config.json || echo "Path not found!"
 
-          echo "Debugging values..."
+          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // empty' config.json || echo "")
+          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // empty' config.json || echo "")
+          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent // {}' config.json || echo "{}")
+
+          echo "Debugging extracted values..."
           echo "APP_ID='$APP_ID'"
           echo "GROUPS='$GROUPS'"
           echo "SERVICE_CREDENTIALS='$SERVICE_CREDENTIALS'"
