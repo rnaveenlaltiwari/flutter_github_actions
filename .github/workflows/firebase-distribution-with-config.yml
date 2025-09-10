@@ -1,0 +1,277 @@
+name: Config Parallel Firebase Distribution for App Flavors
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'Choose which flavor to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      flutter-version: 3.24.5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.5'
+          cache: true
+
+  # ---------------- Checkcircle ----------------
+  build-checkcircle:
+    needs: setup
+    if: ${{ github.event.inputs.flavor == 'checkcircle' || github.event.inputs.flavor == 'all' }}
+    runs-on: ubuntu-latest
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ needs.setup.outputs.flutter-version }}
+
+      - run: flutter pub get
+
+      - name: Decrypt config.json
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Setup .env file from config.json
+        run: |
+          SECRET_KEY=$(jq -r '.common.env.SECRET_KEY' config.json)
+          BASE_URL=$(jq -r '.common.env.BASE_URL' config.json)
+          echo "SECRET_KEY=${SECRET_KEY}" >> .env
+          echo "BASE_URL=${BASE_URL}" >> .env
+
+      - name: Generate env.g.dart with Envied
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Setup Keystore from config.json
+        run: |
+          mkdir -p android/keystore
+          KEYSTORE_BASE64=$(jq -r '.apps.checkcircle.android.keystore.file_base64' config.json)
+          KEYSTORE_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.store_password' config.json)
+          KEY_ALIAS=$(jq -r '.apps.checkcircle.android.keystore.key_alias' config.json)
+          KEY_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.key_password' config.json)
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
+
+          cat > android/signing.properties <<EOF
+          checkcircle.storeFile=../keystore/check-circle.jks
+          checkcircle.storePassword=$KEYSTORE_PASSWORD
+          checkcircle.keyAlias=$KEY_ALIAS
+          checkcircle.keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build Checkcircle APK & AAB
+        run: |
+          flutter build apk --flavor checkcircle --release -t lib/main_checkcircle.dart
+          flutter build appbundle --flavor checkcircle --release -t lib/main_checkcircle.dart
+
+      - name: Upload Checkcircle Builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkcircle-builds
+          path: |
+            build/app/outputs/flutter-apk/*checkcircle*.apk
+            build/app/outputs/bundle/checkcircleRelease/*.aab
+
+      - name: Read Firebase config from config.json
+        id: read-config
+        run: |
+          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
+          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
+          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
+
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
+          echo "service_credentials=$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+
+      - name: Upload to Firebase App Distribution (Checkcircle APK)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ steps.read-config.outputs.app_id }}
+          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
+          groups: ${{ steps.read-config.outputs.groups }}
+          releaseNotes: "GitHub Actions automated build (APK)"
+          file: build/app/outputs/flutter-apk/app-checkcircle-release.apk
+
+  # ---------------- Favorite ----------------
+  build-favorite:
+    needs: setup
+    if: ${{ github.event.inputs.flavor == 'favorite' || github.event.inputs.flavor == 'all' }}
+    runs-on: ubuntu-latest
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ needs.setup.outputs.flutter-version }}
+
+      - run: flutter pub get
+
+      - name: Decrypt config.json
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Setup .env file from config.json
+        run: |
+          SECRET_KEY=$(jq -r '.common.env.SECRET_KEY' config.json)
+          BASE_URL=$(jq -r '.common.env.BASE_URL' config.json)
+          echo "SECRET_KEY=${SECRET_KEY}" >> .env
+          echo "BASE_URL=${BASE_URL}" >> .env
+
+      - name: Generate env.g.dart with Envied
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Setup Keystore from config.json
+        run: |
+          mkdir -p android/keystore
+          KEYSTORE_BASE64=$(jq -r '.apps.favorite.android.keystore.file_base64' config.json)
+          KEYSTORE_PASSWORD=$(jq -r '.apps.favorite.android.keystore.store_password' config.json)
+          KEY_ALIAS=$(jq -r '.apps.favorite.android.keystore.key_alias' config.json)
+          KEY_PASSWORD=$(jq -r '.apps.favorite.android.keystore.key_password' config.json)
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/favorite.jks
+
+          cat > android/signing.properties <<EOF
+          favorite.storeFile=../keystore/favorite.jks
+          favorite.storePassword=$KEYSTORE_PASSWORD
+          favorite.keyAlias=$KEY_ALIAS
+          favorite.keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build Favorite APK & AAB
+        run: |
+          flutter build apk --flavor favorite --release -t lib/main_favorite.dart
+          flutter build appbundle --flavor favorite --release -t lib/main_favorite.dart
+
+      - name: Upload Favorite Builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: favorite-builds
+          path: |
+            build/app/outputs/flutter-apk/*favorite*.apk
+            build/app/outputs/bundle/favoriteRelease/*.aab
+
+      - name: Read Firebase config from config.json
+        id: read-config
+        run: |
+          APP_ID=$(jq -r '.apps.favorite.firebase.android.app_id' config.json)
+          GROUPS=$(jq -r '.apps.favorite.firebase.android.groups' config.json)
+          SERVICE_CREDENTIALS=$(jq -c '.apps.favorite.firebase.android.serviceCredentialsFileContent' config.json)
+
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
+          echo "service_credentials=$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+
+      - name: Upload to Firebase App Distribution (Favorite APK)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ steps.read-config.outputs.app_id }}
+          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
+          groups: ${{ steps.read-config.outputs.groups }}
+          releaseNotes: "GitHub Actions automated build (APK)"
+          file: build/app/outputs/flutter-apk/app-favorite-release.apk
+
+  # ---------------- Star ----------------
+  build-star:
+    needs: setup
+    if: ${{ github.event.inputs.flavor == 'star' || github.event.inputs.flavor == 'all' }}
+    runs-on: ubuntu-latest
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ needs.setup.outputs.flutter-version }}
+
+      - run: flutter pub get
+
+      - name: Decrypt config.json
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Setup .env file from config.json
+        run: |
+          SECRET_KEY=$(jq -r '.common.env.SECRET_KEY' config.json)
+          BASE_URL=$(jq -r '.common.env.BASE_URL' config.json)
+          echo "SECRET_KEY=${SECRET_KEY}" >> .env
+          echo "BASE_URL=${BASE_URL}" >> .env
+
+      - name: Generate env.g.dart with Envied
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Setup Keystore from config.json
+        run: |
+          mkdir -p android/keystore
+          KEYSTORE_BASE64=$(jq -r '.apps.star.android.keystore.file_base64' config.json)
+          KEYSTORE_PASSWORD=$(jq -r '.apps.star.android.keystore.store_password' config.json)
+          KEY_ALIAS=$(jq -r '.apps.star.android.keystore.key_alias' config.json)
+          KEY_PASSWORD=$(jq -r '.apps.star.android.keystore.key_password' config.json)
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/star.jks
+
+          cat > android/signing.properties <<EOF
+          star.storeFile=../keystore/star.jks
+          star.storePassword=$KEYSTORE_PASSWORD
+          star.keyAlias=$KEY_ALIAS
+          star.keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build Star APK & AAB
+        run: |
+          flutter build apk --flavor star --release -t lib/main_star.dart
+          flutter build appbundle --flavor star --release -t lib/main_star.dart
+
+      - name: Upload Star Builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: star-builds
+          path: |
+            build/app/outputs/flutter-apk/*star*.apk
+            build/app/outputs/bundle/starRelease/*.aab
+
+      - name: Read Firebase config from config.json
+        id: read-config
+        run: |
+          APP_ID=$(jq -r '.apps.star.firebase.android.app_id' config.json)
+          GROUPS=$(jq -r '.apps.star.firebase.android.groups' config.json)
+          SERVICE_CREDENTIALS=$(jq -c '.apps.star.firebase.android.serviceCredentialsFileContent' config.json)
+
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
+          echo "service_credentials=$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+
+      - name: Upload to Firebase App Distribution (Star APK)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ steps.read-config.outputs.app_id }}
+          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
+          groups: ${{ steps.read-config.outputs.groups }}
+          releaseNotes: "GitHub Actions automated build (APK)"
+          file: build/app/outputs/flutter-apk/app-star-release.apk
