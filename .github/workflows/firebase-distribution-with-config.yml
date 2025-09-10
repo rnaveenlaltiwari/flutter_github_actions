@@ -99,7 +99,6 @@ jobs:
 #            build/app/outputs/bundle/checkcircleRelease/*.aab
 
       - name: Read Firebase config from config.json
-        id: read-config
         run: |
           GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
           echo "$GROUPS"
