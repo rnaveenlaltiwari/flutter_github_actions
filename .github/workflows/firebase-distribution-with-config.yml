@@ -85,40 +85,42 @@ jobs:
           checkcircle.keyPassword=$KEY_PASSWORD
           EOF
 
-      - name: Build Checkcircle APK & AAB
-        run: |
-          flutter build apk --flavor checkcircle --release -t lib/main_checkcircle.dart
-          flutter build appbundle --flavor checkcircle --release -t lib/main_checkcircle.dart
-
-      - name: Upload Checkcircle Builds
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkcircle-builds
-          path: |
-            build/app/outputs/flutter-apk/*checkcircle*.apk
-            build/app/outputs/bundle/checkcircleRelease/*.aab
+#      - name: Build Checkcircle APK & AAB
+#        run: |
+#          flutter build apk --flavor checkcircle --release -t lib/main_checkcircle.dart
+#          flutter build appbundle --flavor checkcircle --release -t lib/main_checkcircle.dart
+#
+#      - name: Upload Checkcircle Builds
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: checkcircle-builds
+#          path: |
+#            build/app/outputs/flutter-apk/*checkcircle*.apk
+#            build/app/outputs/bundle/checkcircleRelease/*.aab
 
       - name: Read Firebase config from config.json
         id: read-config
         run: |
           APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
           GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
-          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
+          echo "APP_ID = $APP_ID"
+          echo "GROUPS = $GROUPS"
+#          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
 
-          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
-          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
-          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
-          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT  
+#          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+#          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
+#          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
+#          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
+#          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Upload to Firebase App Distribution (Checkcircle APK)
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{ steps.read-config.outputs.app_id }}
-          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
-          groups: ${{ steps.read-config.outputs.groups }}
-          releaseNotes: "GitHub Actions automated build (APK)"
-          file: build/app/outputs/flutter-apk/app-checkcircle-release.apk
+#      - name: Upload to Firebase App Distribution (Checkcircle APK)
+#        uses: wzieba/Firebase-Distribution-Github-Action@v1
+#        with:
+#          appId: ${{ steps.read-config.outputs.app_id }}
+#          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
+#          groups: ${{ steps.read-config.outputs.groups }}
+#          releaseNotes: "GitHub Actions automated build (APK)"
+#          file: build/app/outputs/flutter-apk/app-checkcircle-release.apk
 
   # ---------------- Favorite ----------------
   build-favorite:
