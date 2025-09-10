@@ -48,9 +48,15 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Decrypt config.json
         run: |
           openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Debug config.json
+        run: cat config.json
 
       - name: Setup .env file from config.json
         run: |
@@ -130,9 +136,15 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Decrypt config.json
         run: |
           openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Debug config.json
+        run: cat config.json
 
       - name: Setup .env file from config.json
         run: |
@@ -212,9 +224,15 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Decrypt config.json
         run: |
           openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Debug config.json
+        run: cat config.json
 
       - name: Setup .env file from config.json
         run: |
