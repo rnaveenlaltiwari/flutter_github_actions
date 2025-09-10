@@ -68,22 +68,22 @@ jobs:
       - name: Generate env.g.dart with Envied
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Setup Keystore from config.json
-        run: |
-          mkdir -p android/keystore
-          KEYSTORE_BASE64=$(jq -r '.apps.checkcircle.android.keystore.file_base64' config.json)
-          KEYSTORE_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.store_password' config.json)
-          KEY_ALIAS=$(jq -r '.apps.checkcircle.android.keystore.key_alias' config.json)
-          KEY_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.key_password' config.json)
-
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
-
-          cat > android/signing.properties <<EOF
-          checkcircle.storeFile=../keystore/check-circle.jks
-          checkcircle.storePassword=$KEYSTORE_PASSWORD
-          checkcircle.keyAlias=$KEY_ALIAS
-          checkcircle.keyPassword=$KEY_PASSWORD
-          EOF
+#      - name: Setup Keystore from config.json
+#        run: |
+#          mkdir -p android/keystore
+#          KEYSTORE_BASE64=$(jq -r '.apps.checkcircle.android.keystore.file_base64' config.json)
+#          KEYSTORE_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.store_password' config.json)
+#          KEY_ALIAS=$(jq -r '.apps.checkcircle.android.keystore.key_alias' config.json)
+#          KEY_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.key_password' config.json)
+#
+#          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
+#
+#          cat > android/signing.properties <<EOF
+#          checkcircle.storeFile=../keystore/check-circle.jks
+#          checkcircle.storePassword=$KEYSTORE_PASSWORD
+#          checkcircle.keyAlias=$KEY_ALIAS
+#          checkcircle.keyPassword=$KEY_PASSWORD
+#          EOF
 
 #      - name: Build Checkcircle APK & AAB
 #        run: |
@@ -101,6 +101,7 @@ jobs:
       - name: Read Firebase config from config.json
         id: read-config
         run: |
+          cat config.json
           APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
           GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
           echo "APP_ID = $APP_ID"
