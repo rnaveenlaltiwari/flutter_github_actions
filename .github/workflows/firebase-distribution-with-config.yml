@@ -102,9 +102,9 @@ jobs:
         id: read-config
         run: |
           cat config.json
-          APP_ID=$(jq -c '.apps.checkcircle.firebase.android.app_id' config.json)
-          GROUPS=$(jq -c '.apps.checkcircle.firebase.android.groups' config.json)
-          echo "$APP_ID"
+#          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
+          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
+#          echo "$APP_ID"
           echo "$GROUPS"
 #          SERVICE_CREDENTIALS=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
 
