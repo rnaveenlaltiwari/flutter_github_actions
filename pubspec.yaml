@@ -69,3 +69,5 @@ scripts:
         checkcircle: base64 -i ./android/keystore/check-circle.jks -o ./android/keystore/check-circle.jks.base64
         star: base64 -i ./android/keystore/star.jks -o ./android/keystore/star.jks.base64
         favorite: base64 -i ./android/keystore/favorite.jks -o ./android/keystore/favorite.jks.base64
+    secret:
+      openssl rand -base64 32 # Generate a random key
