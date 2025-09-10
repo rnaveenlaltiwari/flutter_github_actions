@@ -108,6 +108,7 @@ jobs:
           jq '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json || echo "Path not found!"
           APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
           F_GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
+          F_SERVICE_CRED=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
 #          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // empty' config.json || echo "")
 #          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // empty' config.json || echo "")
 #
