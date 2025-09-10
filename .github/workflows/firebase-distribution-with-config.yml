@@ -103,21 +103,24 @@ jobs:
         run: |
           echo "Checking if the path exists..."
           jq '.apps.checkcircle.firebase.android' config.json || echo "Path not found!"
+          jq '.apps.checkcircle.firebase.android.app_id' config.json || echo "Path not found!"
+          jq '.apps.checkcircle.firebase.android.groups' config.json || echo "Path not found!"
+          jq '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json || echo "Path not found!"
 
-          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // empty' config.json || echo "")
-          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // empty' config.json || echo "")
-
-          echo "Debugging extracted values..."
-          echo "APP_ID='$APP_ID'"
-          echo "GROUPS='$GROUPS'"
-
-          echo "Exporting to GitHub Actions outputs..."
-          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
-          echo "groups=$GROUPS" >> "$GITHUB_OUTPUT"
-
-          echo "service_credentials<<EOF" >> "$GITHUB_OUTPUT"
-          jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent // {}' config.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+#          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // empty' config.json || echo "")
+#          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // empty' config.json || echo "")
+#
+#          echo "Debugging extracted values..."
+#          echo "APP_ID='$APP_ID'"
+#          echo "GROUPS='$GROUPS'"
+#
+#          echo "Exporting to GitHub Actions outputs..."
+#          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
+#          echo "groups=$GROUPS" >> "$GITHUB_OUTPUT"
+#
+#          echo "service_credentials<<EOF" >> "$GITHUB_OUTPUT"
+#          jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent // {}' config.json >> "$GITHUB_OUTPUT"
+#          echo "EOF" >> "$GITHUB_OUTPUT"
 
   #      - name: Upload to Firebase App Distribution (Checkcircle APK)
 #        uses: wzieba/Firebase-Distribution-Github-Action@v1
