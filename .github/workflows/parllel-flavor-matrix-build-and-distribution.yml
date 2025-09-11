@@ -1,0 +1,139 @@
+name: Parallel Flavor Matrix Build & Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'Choose which flavor to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+
+#  push:
+#    branches:
+#      - main   # runs on push to main branch
+#  pull_request:
+#    branches:
+#      - main  # PR must target main
+
+jobs:
+  extract-flavors:
+    runs-on: ubuntu-latest
+    outputs:
+      flavors: ${{ steps.get-flavors.outputs.flavors }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Decrypt config.json
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Get flavors from config.json
+        id: get-flavors
+        run: |
+          FLAVORS=$(jq -r '.apps | keys | join(",")' config.json)
+          echo "Found flavors: $FLAVORS"
+          echo "flavors=$FLAVORS" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: extract-flavors
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJson('["' + needs.extract-flavors.outputs.flavors.replace(',', '","') + '"]') }}
+    if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.24.5
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Decrypt config.json
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Load flavor config
+        id: flavor-config
+        run: |
+          APP_NAME=${{ matrix.flavor }}
+          echo "Building for flavor $APP_NAME"
+          KEYSTORE_BASE64=$(jq -r ".apps.${APP_NAME}.android.keystore.file_base64" config.json)
+          KEYSTORE_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.store_password" config.json)
+          KEY_ALIAS=$(jq -r ".apps.${APP_NAME}.android.keystore.key_alias" config.json)
+          KEY_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.key_password" config.json)
+          APP_ID=$(jq -r ".apps.${APP_NAME}.firebase.android.app_id" config.json)
+          GROUPS=$(jq -r ".apps.${APP_NAME}.firebase.android.groups" config.json)
+          SERVICE_CRED=$(jq -c ".apps.${APP_NAME}.firebase.android.serviceCredentialsFileContent" config.json)
+            
+          echo "KEYSTORE_BASE64=$KEYSTORE_BASE64" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+          echo "APP_ID=$APP_ID" >> $GITHUB_ENV
+          echo "GROUPS=$GROUPS" >> $GITHUB_ENV
+          echo "SERVICE_CRED=$SERVICE_CRED" >> $GITHUB_ENV
+
+      - name: Setup keystore
+        run: |
+          mkdir -p android/keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
+          cat > android/signing.properties <<EOF
+          ${{ matrix.flavor }}.storeFile=../keystore/${{ matrix.flavor }}.jks
+          ${{ matrix.flavor }}.storePassword=$KEYSTORE_PASSWORD
+          ${{ matrix.flavor }}.keyAlias=$KEY_ALIAS
+          ${{ matrix.flavor }}.keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Setup environment variables
+        run: |
+          SECRET_KEY=$(jq -r '.common.env.SECRET_KEY' config.json)
+          BASE_URL=$(jq -r '.common.env.BASE_URL' config.json)
+          echo "SECRET_KEY=${SECRET_KEY}" >> .env
+          echo "BASE_URL=${BASE_URL}" >> .env
+
+      - name: Generate env.g.dart
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK and AAB
+        run: |
+          flutter pub get
+          flutter build apk --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
+          flutter build appbundle --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${ { matrix.flavor } }-build
+          path: |
+            build/app/outputs/flutter-apk/*${{ matrix.flavor }}*.apk
+            build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${ { env.APP_ID } }
+          serviceCredentialsFileContent: ${ { env.SERVICE_CRED } }
+          groups: ${ { env.GROUPS } }
+          releaseNotes: "Automated build for flavor ${{ matrix.flavor }}"
+          file: build/app/outputs/flutter-apk/app-${ { matrix.flavor } }-release.apk
