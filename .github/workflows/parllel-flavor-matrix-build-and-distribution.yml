@@ -25,7 +25,7 @@ jobs:
   extract-flavors:
     runs-on: ubuntu-latest
     outputs:
-      flavors: ${{ steps.get-flavors.outputs.flavors }}
+      flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,9 +42,9 @@ jobs:
       - name: Get flavors from config.json
         id: get-flavors
         run: |
-          FLAVORS=$(jq -r '.apps | keys | join(",")' config.json)
-          echo "Found flavors: $FLAVORS"
-          echo "flavors=$FLAVORS" >> "$GITHUB_OUTPUT"
+          FLAVORS_JSON=$(jq -c '.apps | keys' config.json)
+          echo "Found flavors JSON: $FLAVORS_JSON"
+          echo "flavors-json=$FLAVORS_JSON" >> "$GITHUB_OUTPUT"
 
   build:
     needs: extract-flavors
@@ -52,13 +52,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flavor: ${{ fromJson('["' + needs.extract-flavors.outputs.flavors.replace(',', '","') + '"]') }}
-    if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
+        flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
+#    if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
     env:
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Check if flavor should be built
+        run: |
+          if [[ "${{ github.event.inputs.flavor }}" != "all" && "${{ github.event.inputs.flavor }}" != "${{ matrix.flavor }}" ]]; then
+            echo "Flavor ${{ matrix.flavor }} skipped."
+            exit 78
+          fi
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -82,17 +89,17 @@ jobs:
           KEYSTORE_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.store_password" config.json)
           KEY_ALIAS=$(jq -r ".apps.${APP_NAME}.android.keystore.key_alias" config.json)
           KEY_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.key_password" config.json)
-          APP_ID=$(jq -r ".apps.${APP_NAME}.firebase.android.app_id" config.json)
-          GROUPS=$(jq -r ".apps.${APP_NAME}.firebase.android.groups" config.json)
-          SERVICE_CRED=$(jq -c ".apps.${APP_NAME}.firebase.android.serviceCredentialsFileContent" config.json)
-            
+          F_APP_ID=$(jq -r ".apps.${APP_NAME}.firebase.android.app_id" config.json)
+          F_GROUPS=$(jq -r ".apps.${APP_NAME}.firebase.android.groups" config.json)
+          F_SERVICE_CRED=$(jq -c ".apps.${APP_NAME}.firebase.android.serviceCredentialsFileContent" config.json)
+          
           echo "KEYSTORE_BASE64=$KEYSTORE_BASE64" >> $GITHUB_ENV
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
           echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
-          echo "APP_ID=$APP_ID" >> $GITHUB_ENV
-          echo "GROUPS=$GROUPS" >> $GITHUB_ENV
-          echo "SERVICE_CRED=$SERVICE_CRED" >> $GITHUB_ENV
+          echo "APP_ID=$F_APP_ID" >> $GITHUB_ENV
+          echo "GROUPS=$F_GROUPS" >> $GITHUB_ENV
+          echo "SERVICE_CRED=$F_SERVICE_CRED" >> $GITHUB_ENV
 
       - name: Setup keystore
         run: |
@@ -124,7 +131,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${ { matrix.flavor } }-build
+          name: ${{ matrix.flavor }}-build
           path: |
             build/app/outputs/flutter-apk/*${{ matrix.flavor }}*.apk
             build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
@@ -132,8 +139,8 @@ jobs:
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: ${ { env.APP_ID } }
-          serviceCredentialsFileContent: ${ { env.SERVICE_CRED } }
-          groups: ${ { env.GROUPS } }
+          appId: ${{ env.APP_ID }}
+          serviceCredentialsFileContent: ${{ env.SERVICE_CRED }}
+          groups: ${{ env.GROUPS }}
           releaseNotes: "Automated build for flavor ${{ matrix.flavor }}"
-          file: build/app/outputs/flutter-apk/app-${ { matrix.flavor } }-release.apk
+          file: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-release.apk
