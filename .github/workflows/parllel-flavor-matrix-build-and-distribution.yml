@@ -53,6 +53,7 @@ jobs:
       fail-fast: false
       matrix:
         flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
+    if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
     env:
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
     steps:
@@ -88,17 +89,17 @@ jobs:
           KEYSTORE_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.store_password" config.json)
           KEY_ALIAS=$(jq -r ".apps.${APP_NAME}.android.keystore.key_alias" config.json)
           KEY_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.key_password" config.json)
-          APP_ID=$(jq -r ".apps.${APP_NAME}.firebase.android.app_id" config.json)
-          GROUPS=$(jq -r ".apps.${APP_NAME}.firebase.android.groups" config.json)
-          SERVICE_CRED=$(jq -c ".apps.${APP_NAME}.firebase.android.serviceCredentialsFileContent" config.json)
+          F_APP_ID=$(jq -r ".apps.${APP_NAME}.firebase.android.app_id" config.json)
+          F_GROUPS=$(jq -r ".apps.${APP_NAME}.firebase.android.groups" config.json)
+          F_SERVICE_CRED=$(jq -c ".apps.${APP_NAME}.firebase.android.serviceCredentialsFileContent" config.json)
           
           echo "KEYSTORE_BASE64=$KEYSTORE_BASE64" >> $GITHUB_ENV
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
           echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
-          echo "APP_ID=$APP_ID" >> $GITHUB_ENV
-          echo "GROUPS=$GROUPS" >> $GITHUB_ENV
-          echo "SERVICE_CRED=$SERVICE_CRED" >> $GITHUB_ENV
+          echo "APP_ID=$F_APP_ID" >> $GITHUB_ENV
+          echo "GROUPS=$F_GROUPS" >> $GITHUB_ENV
+          echo "SERVICE_CRED=$F_SERVICE_CRED" >> $GITHUB_ENV
 
       - name: Setup keystore
         run: |
