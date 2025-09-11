@@ -106,10 +106,10 @@ jobs:
           jq '.apps.checkcircle.firebase.android.app_id' config.json || echo "Path not found!"
           jq '.apps.checkcircle.firebase.android.groups' config.json || echo "Path not found!"
           jq '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json || echo "Path not found!"
-          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
+          F_APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id' config.json)
           F_GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups' config.json)
           F_SERVICE_CRED=$(jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent' config.json)
-          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
+          echo "app_id=$F_APP_ID" >> "$GITHUB_OUTPUT"
           echo "groups=$F_GROUPS" >> "$GITHUB_OUTPUT"
           echo "service_credentials=$F_SERVICE_CRED" >> "$GITHUB_OUTPUT"
 
@@ -193,15 +193,17 @@ jobs:
       - name: Read Firebase config from config.json
         id: read-config
         run: |
-          APP_ID=$(jq -r '.apps.favorite.firebase.android.app_id' config.json)
-          GROUPS=$(jq -r '.apps.favorite.firebase.android.groups' config.json)
-          SERVICE_CREDENTIALS=$(jq -c '.apps.favorite.firebase.android.serviceCredentialsFileContent' config.json)
-
-          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
-          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
-          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
-          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT  
+          echo "Checking if the path exists..."
+          jq '.apps.favorite.firebase.android' config.json || echo "Path not found!"
+          jq '.apps.favorite.firebase.android.app_id' config.json || echo "Path not found!"
+          jq '.apps.favorite.firebase.android.groups' config.json || echo "Path not found!"
+          jq '.apps.favorite.firebase.android.serviceCredentialsFileContent' config.json || echo "Path not found!"
+          F_APP_ID=$(jq -r '.apps.favorite.firebase.android.app_id' config.json)
+          F_GROUPS=$(jq -r '.apps.favorite.firebase.android.groups' config.json)
+          F_SERVICE_CRED=$(jq -c '.apps.favorite.firebase.android.serviceCredentialsFileContent' config.json)
+          echo "app_id=$F_APP_ID" >> "$GITHUB_OUTPUT"
+          echo "groups=$F_GROUPS" >> "$GITHUB_OUTPUT"
+          echo "service_credentials=$F_SERVICE_CRED" >> "$GITHUB_OUTPUT" 
 
       - name: Upload to Firebase App Distribution (Favorite APK)
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -283,15 +285,17 @@ jobs:
       - name: Read Firebase config from config.json
         id: read-config
         run: |
-          APP_ID=$(jq -r '.apps.star.firebase.android.app_id' config.json)
-          GROUPS=$(jq -r '.apps.star.firebase.android.groups' config.json)
-          SERVICE_CREDENTIALS=$(jq -c '.apps.star.firebase.android.serviceCredentialsFileContent' config.json)
-
-          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
-          echo "groups=$GROUPS" >> $GITHUB_OUTPUT
-          echo "service_credentials<<EOF" >> $GITHUB_OUTPUT
-          echo "$SERVICE_CREDENTIALS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT  
+          echo "Checking if the path exists..."
+          jq '.apps.star.firebase.android' config.json || echo "Path not found!"
+          jq '.apps.star.firebase.android.app_id' config.json || echo "Path not found!"
+          jq '.apps.star.firebase.android.groups' config.json || echo "Path not found!"
+          jq '.apps.star.firebase.android.serviceCredentialsFileContent' config.json || echo "Path not found!"
+          F_APP_ID=$(jq -r '.apps.star.firebase.android.app_id' config.json)
+          F_GROUPS=$(jq -r '.apps.star.firebase.android.groups' config.json)
+          F_SERVICE_CRED=$(jq -c '.apps.star.firebase.android.serviceCredentialsFileContent' config.json)
+          echo "app_id=$F_APP_ID" >> "$GITHUB_OUTPUT"
+          echo "groups=$F_GROUPS" >> "$GITHUB_OUTPUT"
+          echo "service_credentials=$F_SERVICE_CRED" >> "$GITHUB_OUTPUT"  
 
       - name: Upload to Firebase App Distribution (Star APK)
         uses: wzieba/Firebase-Distribution-Github-Action@v1
