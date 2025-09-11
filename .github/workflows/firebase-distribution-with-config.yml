@@ -68,35 +68,35 @@ jobs:
       - name: Generate env.g.dart with Envied
         run: dart run build_runner build --delete-conflicting-outputs
 
-#      - name: Setup Keystore from config.json
-#        run: |
-#          mkdir -p android/keystore
-#          KEYSTORE_BASE64=$(jq -r '.apps.checkcircle.android.keystore.file_base64' config.json)
-#          KEYSTORE_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.store_password' config.json)
-#          KEY_ALIAS=$(jq -r '.apps.checkcircle.android.keystore.key_alias' config.json)
-#          KEY_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.key_password' config.json)
-#
-#          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
-#
-#          cat > android/signing.properties <<EOF
-#          checkcircle.storeFile=../keystore/check-circle.jks
-#          checkcircle.storePassword=$KEYSTORE_PASSWORD
-#          checkcircle.keyAlias=$KEY_ALIAS
-#          checkcircle.keyPassword=$KEY_PASSWORD
-#          EOF
-#
-#      - name: Build Checkcircle APK & AAB
-#        run: |
-#          flutter build apk --flavor checkcircle --release -t lib/main_checkcircle.dart
-#          flutter build appbundle --flavor checkcircle --release -t lib/main_checkcircle.dart
-#
-#      - name: Upload Checkcircle Builds
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: checkcircle-builds
-#          path: |
-#            build/app/outputs/flutter-apk/*checkcircle*.apk
-#            build/app/outputs/bundle/checkcircleRelease/*.aab
+      - name: Setup Keystore from config.json
+        run: |
+          mkdir -p android/keystore
+          KEYSTORE_BASE64=$(jq -r '.apps.checkcircle.android.keystore.file_base64' config.json)
+          KEYSTORE_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.store_password' config.json)
+          KEY_ALIAS=$(jq -r '.apps.checkcircle.android.keystore.key_alias' config.json)
+          KEY_PASSWORD=$(jq -r '.apps.checkcircle.android.keystore.key_password' config.json)
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/keystore/check-circle.jks
+
+          cat > android/signing.properties <<EOF
+          checkcircle.storeFile=../keystore/check-circle.jks
+          checkcircle.storePassword=$KEYSTORE_PASSWORD
+          checkcircle.keyAlias=$KEY_ALIAS
+          checkcircle.keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build Checkcircle APK & AAB
+        run: |
+          flutter build apk --flavor checkcircle --release -t lib/main_checkcircle.dart
+          flutter build appbundle --flavor checkcircle --release -t lib/main_checkcircle.dart
+
+      - name: Upload Checkcircle Builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkcircle-builds
+          path: |
+            build/app/outputs/flutter-apk/*checkcircle*.apk
+            build/app/outputs/bundle/checkcircleRelease/*.aab
 
       - name: Read Firebase config from config.json
         id: read-config
@@ -112,29 +112,15 @@ jobs:
           echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
           echo "groups=$F_GROUPS" >> "$GITHUB_OUTPUT"
           echo "service_credentials=$F_SERVICE_CRED" >> "$GITHUB_OUTPUT"
-#          APP_ID=$(jq -r '.apps.checkcircle.firebase.android.app_id // empty' config.json || echo "")
-#          GROUPS=$(jq -r '.apps.checkcircle.firebase.android.groups // empty' config.json || echo "")
-#
-#          echo "Debugging extracted values..."
-#          echo "APP_ID='$APP_ID'"
-#          echo "GROUPS='$GROUPS'"
-#
-#          echo "Exporting to GitHub Actions outputs..."
-#          echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
-#          echo "groups=$GROUPS" >> "$GITHUB_OUTPUT"
-#
-#          echo "service_credentials<<EOF" >> "$GITHUB_OUTPUT"
-#          jq -c '.apps.checkcircle.firebase.android.serviceCredentialsFileContent // {}' config.json >> "$GITHUB_OUTPUT"
-#          echo "EOF" >> "$GITHUB_OUTPUT"
 
-  #      - name: Upload to Firebase App Distribution (Checkcircle APK)
-#        uses: wzieba/Firebase-Distribution-Github-Action@v1
-#        with:
-#          appId: ${{ steps.read-config.outputs.app_id }}
-#          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
-#          groups: ${{ steps.read-config.outputs.groups }}
-#          releaseNotes: "GitHub Actions automated build (APK)"
-#          file: build/app/outputs/flutter-apk/app-checkcircle-release.apk
+      - name: Upload to Firebase App Distribution (Checkcircle APK)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ steps.read-config.outputs.app_id }}
+          serviceCredentialsFileContent: ${{ steps.read-config.outputs.service_credentials }}
+          groups: ${{ steps.read-config.outputs.groups }}
+          releaseNotes: "GitHub Actions automated build (APK)"
+          file: build/app/outputs/flutter-apk/app-checkcircle-release.apk
 
   # ---------------- Favorite ----------------
   build-favorite:
