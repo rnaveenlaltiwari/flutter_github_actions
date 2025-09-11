@@ -53,12 +53,18 @@ jobs:
       fail-fast: false
       matrix:
         flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
-    if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
     env:
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Check if flavor should be built
+        run: |
+          if [[ "${{ github.event.inputs.flavor }}" != "all" && "${{ github.event.inputs.flavor }}" != "${{ matrix.flavor }}" ]]; then
+            echo "Flavor ${{ matrix.flavor }} skipped."
+            exit 78
+          fi
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
