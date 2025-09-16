@@ -10,6 +10,8 @@ class AppValues {
         return "CheckCircle App";
       case 'favorite':
         return "Favorite App";
+       case 'bookmark':
+        return "Bookmark My Benefits";
       default:
         return "Dev App";
     }
@@ -22,6 +24,7 @@ class AppValues {
       case 'checkcircle':
         return  Colors.white54;
       case 'favorite':
+      case 'bookmark':
         return const Color(0xFF5985E1);
       default:
         return Colors.grey;
@@ -35,6 +38,7 @@ class AppValues {
       case 'checkcircle':
         return Colors.black;
       case 'favorite':
+      case 'bookmark':
         return const Color(0xFFFFFFFF);
       default:
         return Colors.grey;
