@@ -127,11 +127,18 @@ jobs:
           flutter build apk --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
           flutter build appbundle --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
 
+#      - name: Set dynamic debug symbols path
+#        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
+#        run: |
+#          FLAVOR_TITLE=$(echo "${{ matrix.flavor }}" | sed -e 's/\b\(.\)/\u\1/g')
+#          echo "DEBUG_SYMBOLS_PATH=build/app/intermediates/merged_native_libs/${{ matrix.flavor }}Release/merge${FLAVOR_TITLE}ReleaseNativeLibs/out/lib" >> $GITHUB_ENV
+
       - name: Set dynamic debug symbols path
         if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: |
           FLAVOR_TITLE=$(echo "${{ matrix.flavor }}" | sed -e 's/\b\(.\)/\u\1/g')
-          echo "DEBUG_SYMBOLS_PATH=build/app/intermediates/merged_native_libs/${{ matrix.flavor }}Release/merge${FLAVOR_TITLE}ReleaseNativeLibs/out/lib" >> $GITHUB_ENV
+          echo "FLAVOR_TITLE = ${FLAVOR_TITLE}"
+          echo "DEBUG_SYMBOLS_PATH=build/app/intermediates/merged_native_libs/${{ matrix.flavor }}Release/out/lib" >> $GITHUB_ENV
 
       - name: Upload artifacts
         if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
@@ -141,6 +148,13 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/*${{ matrix.flavor }}*.apk
             build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+
+#      - name: Upload Debug Symbols Artifact
+#        if: ${{ matrix.flavor == 'bookmark' }}
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ matrix.flavor }}-debug-symbols
+#          path: ${{ env.DEBUG_SYMBOLS_PATH }}
 
       - name: Upload Debug Symbols Artifact
         if: ${{ matrix.flavor == 'bookmark' }}
