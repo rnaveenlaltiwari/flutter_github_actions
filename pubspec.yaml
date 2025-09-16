@@ -63,11 +63,13 @@ scripts:
         checkcircle: base64 ./android/keystore/check-circle.jks > ./android/keystore/checkcircle.jks.base64
         star: base64 ./android/keystore/star.jks > ./android/keystore/star.jks.base64
         favorite: base64 ./android/keystore/favorite.jks > ./android/keystore/favorite.jks.base64
+        bookmark: base64 ./android/keystore/bookmark.jks > ./android/keystore/bookmark.jks.base64
       mac:
         env: base64 -i ./lib/env.g.dart -o ./lib/env.g.dart.base64
         main: base64 -i ./android/keystore/main.jks -o ./android/keystore/main.jks.base64
         checkcircle: base64 -i ./android/keystore/check-circle.jks -o ./android/keystore/check-circle.jks.base64
         star: base64 -i ./android/keystore/star.jks -o ./android/keystore/star.jks.base64
         favorite: base64 -i ./android/keystore/favorite.jks -o ./android/keystore/favorite.jks.base64
+        bookmark: base64 -i ./android/keystore/bookmark.jks -o ./android/keystore/bookmark.jks.base64
     secret:
       openssl rand -base64 32 # Generate a random key

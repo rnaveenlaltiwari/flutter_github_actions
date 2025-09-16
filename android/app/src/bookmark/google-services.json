@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "922586843536",
+    "project_id": "bookmark-my-benefits",
+    "storage_bucket": "bookmark-my-benefits.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:922586843536:android:896bcd3c5adb993b134b15",
+        "android_client_info": {
+          "package_name": "com.recode.bookmark"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "922586843536-arrdhd5af4gncnev0eo6fee5rltv0s0j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.recode.bookmark",
+            "certificate_hash": "1eb2b8da35102aa437ab61a9595061ba1814e3d2"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDadGFfZX87AqjZ5QiqR36qIyhYpvAfwYg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
