@@ -181,5 +181,5 @@ jobs:
           packageName: com.recode.bookmark
           releaseFiles: build/app/outputs/bundle/${{ matrix.flavor }}Release/app-${{ matrix.flavor }}-release.aab
           track: production
-          whatsNewDirectory: release-notes
+          whatsNewDirectory: distribution/whatsnew
           debugSymbols: ${{ env.DEBUG_SYMBOLS_PATH }}

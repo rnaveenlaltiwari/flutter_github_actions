@@ -1,0 +1,2 @@
+- Improved performance and bug fixes.
+- New features added to the bookmark flavor.
