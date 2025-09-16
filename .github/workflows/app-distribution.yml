@@ -15,13 +15,6 @@ on:
           - star
           - bookmark
 
-#  push:
-#    branches:
-#      - main   # runs on push to main branch
-#  pull_request:
-#    branches:
-#      - main  # PR must target main
-
 jobs:
   extract-flavors:
     runs-on: ubuntu-latest
@@ -54,51 +47,47 @@ jobs:
       fail-fast: false
       matrix:
         flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
-#    if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
     env:
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check if flavor should be built
-        run: |
-          if [[ "${{ github.event.inputs.flavor }}" != "all" && "${{ github.event.inputs.flavor }}" != "${{ matrix.flavor }}" ]]; then
-            echo "Flavor ${{ matrix.flavor }} skipped."
-            exit 78
-          fi
-
       - name: Setup Flutter
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: 3.24.5
 
       - name: Install jq
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Decrypt config.json
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: |
           openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
 
       - name: Load flavor config
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         id: flavor-config
         run: |
           APP_NAME=${{ matrix.flavor }}
           echo "Building for flavor $APP_NAME"
-          
+
           PLAY_PUBLISH_SERVICE_ACCOUNT=$(jq -c ".common.play.serviceAccountJson" config.json)
           echo "PLAY_PUBLISH_SERVICE_ACCOUNT_JSON=$PLAY_PUBLISH_SERVICE_ACCOUNT" >> $GITHUB_ENV
-          
+
           KEYSTORE_BASE64=$(jq -r ".apps.${APP_NAME}.android.keystore.file_base64" config.json)
           KEYSTORE_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.store_password" config.json)
           KEY_ALIAS=$(jq -r ".apps.${APP_NAME}.android.keystore.key_alias" config.json)
           KEY_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.key_password" config.json)
-          
+
           F_APP_ID=$(jq -r ".apps.${APP_NAME}.firebase.android.app_id" config.json)
           F_GROUPS=$(jq -r ".apps.${APP_NAME}.firebase.android.groups" config.json)
           F_SERVICE_CRED=$(jq -c ".apps.${APP_NAME}.firebase.android.serviceCredentialsFileContent" config.json)
-          
+
           echo "KEYSTORE_BASE64=$KEYSTORE_BASE64" >> $GITHUB_ENV
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
           echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
@@ -108,6 +97,7 @@ jobs:
           echo "SERVICE_CRED=$F_SERVICE_CRED" >> $GITHUB_ENV
 
       - name: Setup keystore
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: |
           mkdir -p android/keystore
           echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
@@ -119,6 +109,7 @@ jobs:
           EOF
 
       - name: Setup environment variables
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: |
           SECRET_KEY=$(jq -r '.common.env.SECRET_KEY' config.json)
           BASE_URL=$(jq -r '.common.env.BASE_URL' config.json)
@@ -126,15 +117,24 @@ jobs:
           echo "BASE_URL=${BASE_URL}" >> .env
 
       - name: Generate env.g.dart
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build APK and AAB
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         run: |
           flutter pub get
           flutter build apk --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
           flutter build appbundle --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
 
+      - name: Set dynamic debug symbols path
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
+        run: |
+          FLAVOR_TITLE=$(echo "${{ matrix.flavor }}" | sed -e 's/\b\(.\)/\u\1/g')
+          echo "DEBUG_SYMBOLS_PATH=build/app/intermediates/merged_native_libs/${{ matrix.flavor }}Release/merge${FLAVOR_TITLE}ReleaseNativeLibs/out/lib" >> $GITHUB_ENV
+
       - name: Upload artifacts
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.flavor }}-build
@@ -142,7 +142,15 @@ jobs:
             build/app/outputs/flutter-apk/*${{ matrix.flavor }}*.apk
             build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
 
+      - name: Upload Debug Symbols Artifact
+        if: ${{ matrix.flavor == 'bookmark' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.flavor }}-debug-symbols
+          path: ${{ env.DEBUG_SYMBOLS_PATH }}
+
       - name: Upload to Firebase App Distribution
+        if: ${{ github.event.inputs.flavor == 'all' || github.event.inputs.flavor == matrix.flavor }}
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ env.APP_ID }}
@@ -160,3 +168,4 @@ jobs:
           releaseFiles: build/app/outputs/bundle/${{ matrix.flavor }}Release/app-${{ matrix.flavor }}-release.aab
           track: production
           whatsNewDirectory: release-notes
+          debugSymbols: ${{ env.DEBUG_SYMBOLS_PATH }}
