@@ -131,3 +131,4 @@ ruff.txt
 *.iml
 
 ci/config.json
+app-distribution/
