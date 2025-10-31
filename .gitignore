@@ -60,6 +60,7 @@ unlinked_spec.ds
 /android/keystore/*
 /android/keystore/*.jks
 /android/keystore/*.keystore
+/android/.idea/*
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -130,3 +131,4 @@ ruff.txt
 *.iml
 
 ci/config.json
+app-distribution/
