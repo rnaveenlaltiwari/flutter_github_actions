@@ -1,0 +1,211 @@
+name: Android App Build & Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'Choose which flavor to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+          - bookmark
+  push:
+    branches:
+      - feature/fastlane-setup
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  extract-flavors:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Decrypt config.json
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Get flavors from config.json
+        id: get-flavors
+        run: |
+          FLAVORS_JSON=$(jq -c '.apps | keys' config.json)
+          echo "Found flavors JSON: $FLAVORS_JSON"
+          echo "flavors-json=$FLAVORS_JSON" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: extract-flavors
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      BUILD_FLAVOR: ${{ github.event.inputs.flavor || 'bookmark' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.24.5
+
+      - name: Install jq
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Decrypt config.json
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt -in config.json.enc -out config.json -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Load flavor config
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        id: flavor-config
+        run: |
+          APP_NAME=${{ matrix.flavor }}
+          echo "Building for flavor $APP_NAME"
+
+          PLAY_PUBLISH_SERVICE_ACCOUNT=$(jq -c ".common.play.serviceAccountJson" config.json)
+          echo "PLAY_PUBLISH_SERVICE_ACCOUNT_JSON=$PLAY_PUBLISH_SERVICE_ACCOUNT" >> $GITHUB_ENV
+
+          KEYSTORE_BASE64=$(jq -r ".apps.${APP_NAME}.android.keystore.file_base64" config.json)
+          KEYSTORE_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.store_password" config.json)
+          KEY_ALIAS=$(jq -r ".apps.${APP_NAME}.android.keystore.key_alias" config.json)
+          KEY_PASSWORD=$(jq -r ".apps.${APP_NAME}.android.keystore.key_password" config.json)
+
+          echo "KEYSTORE_BASE64=$KEYSTORE_BASE64" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+
+      - name: Setup keystore
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          mkdir -p android/keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
+          cat > android/signing.properties <<EOF
+          ${{ matrix.flavor }}.storeFile=../keystore/${{ matrix.flavor }}.jks
+          ${{ matrix.flavor }}.storePassword=$KEYSTORE_PASSWORD
+          ${{ matrix.flavor }}.keyAlias=$KEY_ALIAS
+          ${{ matrix.flavor }}.keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Setup environment variables
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          SECRET_KEY=$(jq -r '.common.env.SECRET_KEY' config.json)
+          BASE_URL=$(jq -r '.common.env.BASE_URL' config.json)
+          echo "SECRET_KEY=${SECRET_KEY}" >> .env
+          echo "BASE_URL=${BASE_URL}" >> .env
+
+      - name: Generate env.g.dart
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK and AAB
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          flutter pub get
+          flutter build apk --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
+          flutter build appbundle --flavor ${{ matrix.flavor }} --release -t lib/main_${{ matrix.flavor }}.dart
+
+      - name: Upload artifacts
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.flavor }}-build
+          path: |
+            build/app/outputs/flutter-apk/*${{ matrix.flavor }}*.apk
+            build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+
+      - name: Setup Ruby
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+
+      - name: Install Fastlane
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: gem install fastlane -NV
+
+      - name: Upload to Play Distribution with Fastlane
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          set -e
+          FLAVOR="${{ matrix.flavor }}"
+          DEST_AAB="build/app/outputs/bundle/${FLAVOR}Release/app-${FLAVOR}-release.aab"
+          JSON_KEY_PATH="google-play-key.json"
+
+          # --- Create Google Play JSON key on the fly ---
+          echo '${{ env.PLAY_PUBLISH_SERVICE_ACCOUNT_JSON }}' > "$JSON_KEY_PATH"
+          echo "Created temporary $JSON_KEY_PATH"
+
+          # --- Verify AAB exists ---
+          if [ ! -f "$DEST_AAB" ]; then
+            echo "Missing AAB file: $DEST_AAB"
+            rm -f "$JSON_KEY_PATH"
+            exit 1
+          fi
+
+          # --- Read package name from flavors.properties ---
+          FLAVORS_FILE="flavors.properties"
+          if [ ! -f "$FLAVORS_FILE" ]; then
+            echo "Missing $FLAVORS_FILE"
+            rm -f "$JSON_KEY_PATH"
+            exit 1
+          fi
+
+          PACKAGE_NAME=$(grep "^${FLAVOR}\.applicationId=" "$FLAVORS_FILE" | cut -d'=' -f2 | tr -d '\r')
+
+          if [ -z "$PACKAGE_NAME" ]; then
+            echo "Package name not found for flavor: $FLAVOR"
+            rm -f "$JSON_KEY_PATH"
+            exit 1
+          fi
+
+          echo "Uploading $DEST_AAB for package $PACKAGE_NAME"
+
+          # --- Run Fastlane upload ---
+          if ! fastlane supply \
+            --aab "$DEST_AAB" \
+            --package_name "$PACKAGE_NAME" \
+            --track production \
+            --json_key "$JSON_KEY_PATH" \
+            --metadata_path "./release-notes/metadata/android" \
+            --rollout 1.0 \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true; then
+            echo "[$FLAVOR] Upload failed"
+            rm -f "$JSON_KEY_PATH"
+            exit 1
+          fi
+
+          echo "Successfully uploaded $FLAVOR ($PACKAGE_NAME)"
+          rm -f "$JSON_KEY_PATH"
+          echo "Removed temporary $JSON_KEY_PATH"
