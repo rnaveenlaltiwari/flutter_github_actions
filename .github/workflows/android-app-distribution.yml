@@ -173,7 +173,7 @@ jobs:
           fi
 
           # --- Read package name from flavors.properties ---
-          FLAVORS_FILE="flavors.properties"
+          FLAVORS_FILE="android/flavors.properties"
           if [ ! -f "$FLAVORS_FILE" ]; then
             echo "Missing $FLAVORS_FILE"
             rm -f "$JSON_KEY_PATH"
