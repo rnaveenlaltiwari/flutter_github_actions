@@ -63,6 +63,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Export ANDROID_HOME & PATH
+        run: |
+            echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
+            echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
       # ---------- Android + NDK Cache ----------
       - name: Cache Android SDK
         id: android-cache
@@ -79,14 +84,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wget unzip
 
-          sudo mkdir -p $ANDROID_HOME/cmdline-tools
-          cd $ANDROID_HOME/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
-          unzip tools.zip
-          mv cmdline-tools latest
+          # Temporary workspace
+          mkdir -p $HOME/android-tmp
+          cd $HOME/android-tmp
 
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          echo "📥 Downloading command line tools..."
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
+
+          echo "📦 Extracting..."
+          unzip tools.zip
+          rm tools.zip
+
+          sudo mkdir -p $ANDROID_HOME/cmdline-tools
+          sudo mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+          echo "☑️ Accepting licenses & installing packages..."
+          yes | sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+
+          sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
             "build-tools;${{ env.ANDROID_SDK_VER }}" \
