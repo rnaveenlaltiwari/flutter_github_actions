@@ -63,10 +63,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # <-- EXPORT ANDROID_HOME and ADD FLUTTER PATH (absolute path, no tilde/quotes)
       - name: Export ANDROID_HOME & PATH
         run: |
-            echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
-            echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
+          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
       # ---------- Android + NDK Cache ----------
       - name: Cache Android SDK
@@ -121,12 +123,15 @@ jobs:
           git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
           cd ~/.flutter-sdk
           git checkout ${{ env.FLUTTER_VERSION }}
+          # initialize flutter binary / caches so the binary exists
+          ~/.flutter-sdk/bin/flutter doctor -v
 
       # ---------- Validate Installation ----------
       - name: Validate & Export Flutter
         run: |
+          # ensure absolute path is used here (path added above for convenience)
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
-          flutter --version
+          ~/.flutter-sdk/bin/flutter --version
 
   build:
     needs: [extract-flavors, setup-caches]
@@ -149,9 +154,11 @@ jobs:
 
       - name: Add Flutter & SDK to PATH
         run: |
+          # re-add to PATH on this job's runner (each job VM is fresh)
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          flutter --version  
+          # use absolute path to verify quickly
+          ~/.flutter-sdk/bin/flutter --version
 
       # ---------- Restore Dependency Caches ----------
       - name: Restore dependencies cache
@@ -216,8 +223,9 @@ jobs:
       - name: Build AppBundle
         if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
-          flutter pub get
-          flutter build appbundle \
+          # ensure flutter binary usage via full path for reliability
+          ~/.flutter-sdk/bin/flutter pub get
+          ~/.flutter-sdk/bin/flutter build appbundle \
             --flavor ${{ matrix.flavor }} \
             --release \
             -t lib/main_${{ matrix.flavor }}.dart
