@@ -123,10 +123,10 @@ jobs:
           git checkout ${{ env.FLUTTER_VERSION }}
 
       # ---------- Validate Installation ----------
-      - name: Validate SDKs
+      - name: Validate & Export Flutter
         run: |
-          echo "~/.flutter-sdk/bin" >> $GITHUB_PATH
-          flutter doctor -v
+          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+          flutter --version
 
   build:
     needs: [extract-flavors, setup-caches]
@@ -146,6 +146,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Add Flutter & SDK to PATH
+        run: |
+          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          flutter --version  
 
       # ---------- Restore Dependency Caches ----------
       - name: Restore dependencies cache
