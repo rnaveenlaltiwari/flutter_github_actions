@@ -1,0 +1,278 @@
+name: Android App Build & Distribution with Caching
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Choose which flavor to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+          - bookmark
+
+jobs:
+  extract-flavors:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./strive_health
+    outputs:
+      flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Decrypt config.json
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -d -salt \
+            -in config.json.enc -out config.json \
+            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Get flavors from config.json
+        id: get-flavors
+        run: |
+          echo "flavors-json=$(jq -c '.apps | keys' config.json)" >> "$GITHUB_OUTPUT"
+
+
+  build:
+    needs: extract-flavors
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./strive_health
+    strategy:
+      fail-fast: false
+      max-parallel: 2  # limits parallel jobs to prevent memory overload
+      matrix:
+        flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      BUILD_FLAVOR: ${{ github.event.inputs.flavor || 'bookmark' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---------- ANDROID SDK + NDK + FLUTTER SDK CACHING ----------
+      - name: Cache Android SDK + NDK
+        id: android-sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android
+            $ANDROID_HOME/build-tools
+            $ANDROID_HOME/platforms
+            $ANDROID_HOME/platform-tools
+            $ANDROID_HOME/cmdline-tools
+            $ANDROID_HOME/ndk/29.0.14033849
+          key: android-sdk-cache
+
+      - name: Install Android SDK + NDK (only if missing)
+        if: steps.android-sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+
+          sudo mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
+          unzip tools.zip
+          mv cmdline-tools latest
+
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;29.0.14033849"
+
+      - name: Cache Flutter SDK
+        id: flutter-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.flutter-sdk
+          key: flutter-3.24.5
+
+      - name: Install Flutter SDK (only if missing)
+        if: steps.flutter-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
+          cd ~/.flutter-sdk
+          git checkout 3.24.5
+
+      - name: Add Flutter to PATH
+        run: echo "~/.flutter-sdk/bin" >> $GITHUB_PATH
+
+      - name: Validate Flutter Installation
+        run: flutter doctor -v
+      # ---------- End ANDROID SDK + NDK + FLUTTER SDK CACHING ----------
+
+      # ---------- Global Cache Restore ----------
+      - name: Restore Global Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            strive_health/.dart_tool
+            strive_health/android/.gradle
+            strive_health/build
+          key: global-${{ runner.os }}-${{ hashFiles('strive_health/pubspec.lock') }}
+          restore-keys: global-${{ runner.os }}-
+
+      # ---------- Flutter SDK ----------
+      #      - name: Setup Flutter
+      #        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+      #        uses: subosito/flutter-action@v2
+      #        with:
+      #          channel: stable
+      #          flutter-version: 3.24.5
+
+      # ---------- Pub Cache ----------
+      - name: Cache Pub Dependencies
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            strive_health/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      # ---------- Gradle Cache ----------
+      - name: Cache Gradle
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Install jq
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      # ---------- Config ----------
+      - name: Decrypt config.json
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -d -salt \
+            -in config.json.enc -out config.json \
+            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Load flavor config
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        id: flavor-config
+        run: |
+          APP=${{ matrix.flavor }}
+          PLAY_JSON=$(jq -c ".common.play.serviceAccountJson" config.json)
+          echo "PLAY_PUBLISH_SERVICE_ACCOUNT_JSON=$PLAY_JSON" >> $GITHUB_ENV
+
+          echo "KEYSTORE_BASE64=$(jq -r ".apps.${APP}.android.keystore.file_base64" config.json)" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=$(jq -r ".apps.${APP}.android.keystore.store_password" config.json)" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$(jq -r ".apps.${APP}.android.keystore.key_alias" config.json)" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$(jq -r ".apps.${APP}.android.keystore.key_password" config.json)" >> $GITHUB_ENV
+
+      # ---------- Keystore ----------
+      - name: Setup keystore
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          mkdir -p android/keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
+          cat > android/signing.properties <<EOF
+          ${{ matrix.flavor }}.storeFile=../keystore/${{ matrix.flavor }}.jks
+          ${{ matrix.flavor }}.storePassword=$KEYSTORE_PASSWORD
+          ${{ matrix.flavor }}.keyAlias=$KEY_ALIAS
+          ${{ matrix.flavor }}.keyPassword=$KEY_PASSWORD
+          EOF
+
+      # ---------- ENV ----------
+      - name: Setup env variables
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: jq -r '.common.env | to_entries[] | "\(.key)=\(.value)"' config.json >> .env
+
+      # ---------- ENV Part ----------
+      - name: Generate env.g.dart
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      # ---------- BUILD (AAB) ----------
+      - name: Build AppBundle
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          flutter pub get
+          flutter build appbundle \
+            --flavor ${{ matrix.flavor }} \
+            --release \
+            -t lib/main_${{ matrix.flavor }}.dart
+
+      # ---------- ARTIFACTS ----------
+      - name: Upload artifacts
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.flavor }}-build
+          path: strive_health/build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+
+      # ---------- SAVE CACHE ONCE ----------
+      - name: Save Global Cache
+        if: ${{ matrix.flavor == 'bookmark' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            strive_health/.dart_tool
+            strive_health/android/.gradle
+            strive_health/build
+          key: global-${{ runner.os }}-${{ hashFiles('strive_health/pubspec.lock') }}
+
+      # ---------- FASTLANE ----------
+      - name: Setup Ruby
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+
+      - name: Install Fastlane
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: gem install fastlane -NV
+
+      - name: Upload to Play Distribution with Fastlane
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          FLAVOR=${{ matrix.flavor }}
+          AAB="build/app/outputs/bundle/${FLAVOR}Release/app-${FLAVOR}-release.aab"
+          KEY="google-play-key.json"
+          
+          echo '${{ env.PLAY_PUBLISH_SERVICE_ACCOUNT_JSON }}' > $KEY
+          
+          PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
+          
+          fastlane supply \
+            --aab "$AAB" \
+            --package_name "$PKG" \
+            --track production \
+            --json_key "$KEY" \
+            --metadata_path "./release-notes/metadata/android" \
+            --rollout 1.0 \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true
+          
+          rm -f "$KEY"
