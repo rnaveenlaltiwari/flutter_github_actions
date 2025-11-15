@@ -152,6 +152,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Restore Flutter SDK cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.flutter-sdk
+          key: flutter-${{ env.FLUTTER_VERSION }}
+
       - name: Add Flutter & SDK to PATH
         run: |
           # re-add to PATH on this job's runner (each job VM is fresh)
