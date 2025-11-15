@@ -15,6 +15,16 @@ on:
           - star
           - bookmark
 
+env:
+  FLUTTER_VERSION: 3.24.5
+  ANDROID_SDK_VER: "35.0.0"
+  ANDROID_PLATFORM_VER: "android-35"
+  NDK_VER: "29.0.14033849"
+  ANDROID_HOME: /usr/local/lib/android
+
+# ====================================================================
+#   1️⃣ Extract list of flavors from encrypted config.json
+# ====================================================================
 jobs:
   extract-flavors:
     runs-on: ubuntu-latest
@@ -43,9 +53,68 @@ jobs:
         run: |
           echo "flavors-json=$(jq -c '.apps | keys' config.json)" >> "$GITHUB_OUTPUT"
 
+  # ====================================================================
+  #   2️⃣ Pre-install & Cache ANDROID SDK + NDK + Flutter SDK
+  # ====================================================================
+  setup-caches:
+    needs: extract-flavors
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- Android + NDK Cache ----------
+      - name: Cache Android SDK
+        id: android-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ANDROID_HOME }}
+            /usr/local/lib/android
+          key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
+      - name: Install Android SDK & NDK (if cache-miss)
+        if: steps.android-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+
+          sudo mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
+          unzip tools.zip
+          mv cmdline-tools latest
+
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
+            "build-tools;${{ env.ANDROID_SDK_VER }}" \
+            "ndk;${{ env.NDK_VER }}"
+
+      # ---------- Flutter Cache ----------
+      - name: Cache Flutter SDK
+        id: flutter-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.flutter-sdk
+          key: flutter-${{ env.FLUTTER_VERSION }}
+
+      - name: Install Flutter SDK (if cache-miss)
+        if: steps.flutter-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
+          cd ~/.flutter-sdk
+          git checkout ${{ env.FLUTTER_VERSION }}
+
+      # ---------- Validate Installation ----------
+      - name: Validate SDKs
+        run: |
+          echo "~/.flutter-sdk/bin" >> $GITHUB_PATH
+          flutter doctor -v
 
   build:
-    needs: extract-flavors
+    needs: [extract-flavors, setup-caches]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,103 +132,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ---------- ANDROID SDK + NDK + FLUTTER SDK CACHING ----------
-      - name: Cache Android SDK + NDK
-        id: android-sdk-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/local/lib/android
-            $ANDROID_HOME/build-tools
-            $ANDROID_HOME/platforms
-            $ANDROID_HOME/platform-tools
-            $ANDROID_HOME/cmdline-tools
-            $ANDROID_HOME/ndk/29.0.14033849
-          key: android-sdk-cache
-
-      - name: Install Android SDK + NDK (only if missing)
-        if: steps.android-sdk-cache.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip
-
-          sudo mkdir -p $ANDROID_HOME/cmdline-tools
-          cd $ANDROID_HOME/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O tools.zip
-          unzip tools.zip
-          mv cmdline-tools latest
-
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "ndk;29.0.14033849"
-
-      - name: Cache Flutter SDK
-        id: flutter-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.flutter-sdk
-          key: flutter-3.24.5
-
-      - name: Install Flutter SDK (only if missing)
-        if: steps.flutter-cache.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
-          cd ~/.flutter-sdk
-          git checkout 3.24.5
-
-      - name: Add Flutter to PATH
-        run: echo "~/.flutter-sdk/bin" >> $GITHUB_PATH
-
-      - name: Validate Flutter Installation
-        run: flutter doctor -v
-      # ---------- End ANDROID SDK + NDK + FLUTTER SDK CACHING ----------
-
-      # ---------- Global Cache Restore ----------
-      - name: Restore Global Cache
+      # ---------- Restore Dependency Caches ----------
+      - name: Restore dependencies cache
         uses: actions/cache/restore@v4
         with:
           path: |
             ~/.pub-cache
             ~/.gradle/caches
             ~/.gradle/wrapper
-            strive_health/.dart_tool
-            strive_health/android/.gradle
-            strive_health/build
-          key: global-${{ runner.os }}-${{ hashFiles('strive_health/pubspec.lock') }}
-          restore-keys: global-${{ runner.os }}-
-
-      # ---------- Flutter SDK ----------
-      #      - name: Setup Flutter
-      #        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
-      #        uses: subosito/flutter-action@v2
-      #        with:
-      #          channel: stable
-      #          flutter-version: 3.24.5
-
-      # ---------- Pub Cache ----------
-      - name: Cache Pub Dependencies
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            strive_health/.dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
-
-      # ---------- Gradle Cache ----------
-      - name: Cache Gradle
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
+          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: deps-${{ runner.os }}-
 
       - name: Install jq
         if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
@@ -227,8 +209,8 @@ jobs:
           name: ${{ matrix.flavor }}-build
           path: strive_health/build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
 
-      # ---------- SAVE CACHE ONCE ----------
-      - name: Save Global Cache
+      # ---------- Save Dependencies Cache (only once) ----------
+      - name: Save dependencies cache
         if: ${{ matrix.flavor == 'bookmark' }}
         uses: actions/cache/save@v4
         with:
@@ -236,10 +218,7 @@ jobs:
             ~/.pub-cache
             ~/.gradle/caches
             ~/.gradle/wrapper
-            strive_health/.dart_tool
-            strive_health/android/.gradle
-            strive_health/build
-          key: global-${{ runner.os }}-${{ hashFiles('strive_health/pubspec.lock') }}
+          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
 
       # ---------- FASTLANE ----------
       - name: Setup Ruby
