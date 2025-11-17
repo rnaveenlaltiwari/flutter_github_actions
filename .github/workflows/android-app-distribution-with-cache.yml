@@ -109,7 +109,7 @@ jobs:
           echo "☑️ Accepting licenses & installing packages..."
           yes | sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
 
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
             "build-tools;${{ env.ANDROID_SDK_VER }}" \
