@@ -20,7 +20,7 @@ env:
   ANDROID_SDK_VER: "35.0.0"
   ANDROID_PLATFORM_VER: "android-36"
   NDK_VER: "29.0.14033849"
-  ANDROID_HOME: $HOME/android-sdk
+  ANDROID_HOME: /home/runner/android-sdk
 
 # ====================================================================
 #   1️⃣ Extract list of flavors from encrypted config.json
