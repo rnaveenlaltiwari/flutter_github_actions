@@ -130,7 +130,7 @@ jobs:
           cd ~/.flutter-sdk
           git checkout ${{ env.FLUTTER_VERSION }}
           # initialize flutter binary / caches so the binary exists
-          ~/.flutter-sdk/bin/flutter doctor -v
+          flutter doctor -v
 
       # ---------- Validate Installation ----------
       - name: Validate & Export Flutter
@@ -139,7 +139,7 @@ jobs:
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          ~/.flutter-sdk/bin/flutter doctor -v
+          flutter doctor -v
 
   build:
     needs: [extract-flavors, setup-caches]
@@ -178,7 +178,7 @@ jobs:
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
           # use absolute path to verify quickly
-          ~/.flutter-sdk/bin/flutter doctor -v
+          flutter doctor -v
 
       # ---------- Restore Dependency Caches ----------
       - name: Restore dependencies cache
@@ -245,8 +245,8 @@ jobs:
         if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
           # ensure flutter binary usage via full path for reliability
-          ~/.flutter-sdk/bin/flutter pub get
-          ~/.flutter-sdk/bin/flutter build appbundle \
+          flutter pub get
+          flutter build appbundle \
             --flavor ${{ matrix.flavor }} \
             --release \
             -t lib/main_${{ matrix.flavor }}.dart
