@@ -69,6 +69,7 @@ jobs:
           echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
       # ---------- Android + NDK Cache ----------
       - name: Cache Android SDK
@@ -108,7 +109,7 @@ jobs:
           echo "☑️ Accepting licenses & installing packages..."
           yes | sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
 
-          sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
             "build-tools;${{ env.ANDROID_SDK_VER }}" \
@@ -136,6 +137,8 @@ jobs:
         run: |
           # ensure absolute path is used here (path added above for convenience)
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
           ~/.flutter-sdk/bin/flutter doctor -v
 
   build:
@@ -152,6 +155,7 @@ jobs:
     env:
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
       BUILD_FLAVOR: ${{ github.event.inputs.flavor || 'bookmark' }}
+      ANDROID_HOME: /home/runner/android-sdk  # consistent with setup-caches
 
     steps:
       - name: Checkout code
@@ -166,7 +170,6 @@ jobs:
       - name: Add Flutter & SDK to PATH
         run: |
           # re-add to PATH on this job's runner (each job VM is fresh)
-          echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
           # use absolute path to verify quickly
