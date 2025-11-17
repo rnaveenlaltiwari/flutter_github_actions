@@ -188,7 +188,7 @@ jobs:
         
 #      - name: Add Flutter & SDK to PATH
 #        run: |
-           re-add to PATH on this job's runner (each job VM is fresh)
+#           re-add to PATH on this job's runner (each job VM is fresh)
 #          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
 #          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
 #           use absolute path to verify quickly
