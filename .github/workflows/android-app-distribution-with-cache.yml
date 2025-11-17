@@ -81,6 +81,9 @@ jobs:
       - name: Debug cache key
         run: |
           echo "Cache key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}"
+          echo "Cache hit: ${{ steps.android-cache.outputs.cache-hit }}"
+          echo "Cache condition: ${{ steps.android-cache.outputs.cache-hit != 'true' }}"
+          echo "ANDROID_HOME: ${{ env.ANDROID_HOME }}"
 
       - name: Install Android SDK & NDK (if cache-miss)
         if: steps.android-cache.outputs.cache-hit != 'true'
