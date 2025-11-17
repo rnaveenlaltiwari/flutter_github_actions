@@ -132,7 +132,7 @@ jobs:
 
       # Add Flutter SDK bin to PATH
       - name: Add Flutter SDK to PATH
-        run: echo "${{ github.workspace }}/.flutter-sdk/bin" >> $GITHUB_PATH
+        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
 
       # Run Flutter Doctor without full path
       - name: Run Flutter Doctor
@@ -180,7 +180,7 @@ jobs:
 
       # Add Flutter SDK bin to PATH
       - name: Add Flutter SDK to PATH
-        run: echo "${{ github.workspace }}/.flutter-sdk/bin" >> $GITHUB_PATH
+        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
 
       # Run Flutter Doctor without full path
       - name: Run Flutter Doctor
