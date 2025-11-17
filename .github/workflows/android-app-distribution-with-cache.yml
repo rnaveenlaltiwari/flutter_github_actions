@@ -21,6 +21,7 @@ env:
   ANDROID_PLATFORM_VER: "android-36"
   NDK_VER: "29.0.14033849"
   ANDROID_HOME: /usr/local/lib/android/sdk
+  CACHE_RETENTION_DAYS: 90
 
 # ====================================================================
 #   1️⃣ Extract list of flavors from encrypted config.json
@@ -77,6 +78,7 @@ jobs:
         with:
           path: ${{ env.ANDROID_HOME }}
           key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          retention-days: ${{ env.CACHE_RETENTION_DAYS }}
 
       - name: Install Android SDK & NDK (if cache-miss)
         if: steps.android-cache.outputs.cache-hit != 'true'
@@ -114,6 +116,7 @@ jobs:
         with:
           path: ~/.flutter-sdk
           key: flutter-${{ env.FLUTTER_VERSION }}
+          retention-days: ${{ env.CACHE_RETENTION_DAYS }}
 
       - name: Install Flutter SDK (if cache-miss)
         if: steps.flutter-cache.outputs.cache-hit != 'true'
@@ -253,6 +256,7 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          retention-days: ${{ env.CACHE_RETENTION_DAYS }}
 
       # ---------- FASTLANE ----------
       - name: Setup Ruby
