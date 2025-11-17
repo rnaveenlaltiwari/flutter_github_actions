@@ -20,7 +20,7 @@ env:
   ANDROID_SDK_VER: "35.0.0"
   ANDROID_PLATFORM_VER: "android-36"
   NDK_VER: "29.0.14033849"
-  ANDROID_HOME: /usr/local/lib/android
+  ANDROID_HOME: /usr/local/lib/android/sdk
 
 # ====================================================================
 #   1️⃣ Extract list of flavors from encrypted config.json
@@ -75,9 +75,7 @@ jobs:
         id: android-cache
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ env.ANDROID_HOME }}
-            /usr/local/lib/android
+          path: ${{ env.ANDROID_HOME }}
           key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
 
       - name: Install Android SDK & NDK (if cache-miss)
