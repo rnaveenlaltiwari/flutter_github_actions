@@ -161,6 +161,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Restore Android SDK cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}
+          key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
       - name: Restore Flutter SDK cache
         uses: actions/cache/restore@v4
         with:
