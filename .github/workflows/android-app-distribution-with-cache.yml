@@ -155,7 +155,6 @@ jobs:
     env:
       ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
       BUILD_FLAVOR: ${{ github.event.inputs.flavor || 'bookmark' }}
-      ANDROID_HOME: /home/runner/android-sdk  # consistent with setup-caches
 
     steps:
       - name: Checkout code
