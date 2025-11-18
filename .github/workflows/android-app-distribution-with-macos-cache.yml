@@ -25,7 +25,7 @@ env:
   FLUTTER_VERSION: 3.24.5
   ANDROID_SDK_VER: "35.0.0"
   ANDROID_SDK_VER_2: "34.0.0"
-  ANDROID_PLATFORM_VER: "android-36"
+  ANDROID_PLATFORM_VER: "36"
   ANDROID_PLATFORM_VER_2: "android-31"
   NDK_VER: "29.0.14033849"
   #  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
@@ -106,7 +106,7 @@ jobs:
           sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
           build-tools-version: ${{ env.ANDROID_SDK_VER }}
           ndk-version: ${{ env.NDK_VER }}
-          command-line-tools-version: 19.0
+          command-line-tools-version: 10406996
           generate-job-summary: false
 
 #      - name: Install Android SDK & NDK (if cache-miss)
