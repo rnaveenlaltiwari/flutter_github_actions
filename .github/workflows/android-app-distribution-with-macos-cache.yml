@@ -119,7 +119,21 @@ jobs:
           command-line-tools-version: 10406996
           generate-job-summary: false
 
-#      - name: Install Android SDK & NDK (if cache-miss)
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          # optional parameters follow
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
+          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+      - name: Run Flutter Doctor
+        run: flutter --version
+
+          #      - name: Install Android SDK & NDK (if cache-miss)
 #        if: steps.android-cache.outputs.cache-hit != 'true'
 #        run: |
 #          for pkg in wget unzip; do
@@ -156,44 +170,44 @@ jobs:
 #            "build-tools;${{ env.ANDROID_SDK_VER_2 }}"
 
       # ---------- Flutter Cache ----------
-      - name: Cache Flutter SDK
-        id: flutter-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.flutter-sdk
-          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
-
-      - name: Install Flutter SDK (if cache-miss)
-        if: steps.flutter-cache.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
-          cd ~/.flutter-sdk
-          git checkout ${{ env.FLUTTER_VERSION }}
-
-      # Add Flutter SDK bin to PATH
-      - name: Add Flutter SDK to PATH
-        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
-
+#      - name: Cache Flutter SDK
+#        id: flutter-cache
+#        uses: actions/cache@v4
+#        with:
+#          path: ~/.flutter-sdk
+#          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+#
+#      - name: Install Flutter SDK (if cache-miss)
+#        if: steps.flutter-cache.outputs.cache-hit != 'true'
+#        run: |
+#          git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
+#          cd ~/.flutter-sdk
+#          git checkout ${{ env.FLUTTER_VERSION }}
+#
+#       Add Flutter SDK bin to PATH
+#      - name: Add Flutter SDK to PATH
+#        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+#
       # Run Flutter Doctor
-      - name: Run Flutter Doctor
-        run: flutter doctor -v
+#      - name: Run Flutter Doctor
+#        run: flutter doctor -v
 
       # ---------- Cache Flutter Artifacts ----------
-      - name: Cache Flutter Build Artifacts
-        id: flutter-artifacts-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-            $HOME/.flutter-sdk/bin/cache/artifacts
-          key: flutter-artifacts-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+#      - name: Cache Flutter Build Artifacts
+#        id: flutter-artifacts-cache
+#        uses: actions/cache@v4
+#        with:
+#          path: |
+#            ~/.pub-cache
+#            .dart_tool
+#            $HOME/.flutter-sdk/bin/cache/artifacts
+#          key: flutter-artifacts-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
 
-      - name: Fetch Flutter Artifacts (if cache-miss)
-        if: steps.flutter-artifacts-cache.outputs.cache-hit != 'true'
-        run: |
-          flutter precache --android
-          flutter precache --macos
+#      - name: Fetch Flutter Artifacts (if cache-miss)
+#        if: steps.flutter-artifacts-cache.outputs.cache-hit != 'true'
+#        run: |
+#          flutter precache --android
+#          flutter precache --macos
 
 
   build:
@@ -235,40 +249,54 @@ jobs:
           command-line-tools-version: 19.0
           generate-job-summary: false
 
-      - name: Restore Flutter SDK cache
-        uses: actions/cache/restore@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          path: ~/.flutter-sdk
-          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          # optional parameters follow
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
+          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+      - name: Run Flutter Doctor
+        run: flutter --version
 
-      - name: Restore Flutter Artifact Cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-            $HOME/.flutter-sdk/bin/cache/artifacts
-          key: flutter-artifacts-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+#      - name: Restore Flutter SDK cache
+#        uses: actions/cache/restore@v4
+#        with:
+#          path: ~/.flutter-sdk
+#          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+
+#      - name: Restore Flutter Artifact Cache
+#        uses: actions/cache/restore@v4
+#        with:
+#          path: |
+#            ~/.pub-cache
+#            .dart_tool
+#            $HOME/.flutter-sdk/bin/cache/artifacts
+#          key: flutter-artifacts-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
 
       # Add Flutter SDK bin to PATH
-      - name: Add Flutter SDK to PATH
-        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+#      - name: Add Flutter SDK to PATH
+#        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
 
       # Run Flutter Doctor
-      - name: Run Flutter Doctor
-        run: flutter doctor -v
+#      - name: Run Flutter Doctor
+#        run: flutter doctor -v
 
       # ---------- Restore Dependency Caches ----------
-      - name: Restore dependencies cache
-        id: deps-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: deps-${{ runner.os }}-
+#      - name: Restore dependencies cache
+#        id: deps-restore
+#        uses: actions/cache/restore@v4
+#        with:
+#          path: |
+#            ~/.pub-cache
+#            ~/.gradle/caches
+#            ~/.gradle/wrapper
+#          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+#          restore-keys: deps-${{ runner.os }}-
 
       - name: Install jq
         run: |
@@ -334,15 +362,15 @@ jobs:
           path: build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
 
       # ---------- Save Dependencies Cache (only once) ----------
-      - name: Save dependencies cache
-        if: steps.deps-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+#      - name: Save dependencies cache
+#        if: steps.deps-restore.outputs.cache-hit != 'true'
+#        uses: actions/cache/save@v4
+#        with:
+#          path: |
+#            ~/.pub-cache
+#            ~/.gradle/caches
+#            ~/.gradle/wrapper
+#          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
 
       # ---------- FASTLANE ----------
       - name: Setup Ruby
