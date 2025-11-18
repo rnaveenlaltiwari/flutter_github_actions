@@ -29,7 +29,7 @@ env:
   ANDROID_PLATFORM_VER_2: "android-31"
   NDK_VER: "29.0.14033849"
   #  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
-  ANDROID_HOME: /Users/runner/Library/Android/sdk  # macOS Android SDK default
+#  ANDROID_HOME: /Users/runner/Library/Android/sdk  # macOS Android SDK default
 
 #   Extract list of flavors from encrypted config.json
 jobs:
@@ -73,63 +73,77 @@ jobs:
       - uses: actions/checkout@v4
 
       # EXPORT ANDROID_HOME and ADD FLUTTER PATH
-      - name: Export ANDROID_HOME & PATH
-        run: |
-          echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
-          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+#      - name: Export ANDROID_HOME & PATH
+#        run: |
+#          echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
+#          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+#          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+#          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
       # ---------- Android + NDK Cache ----------
-      - name: Cache Android SDK
-        id: android-cache
-        uses: actions/cache@v4
+#      - name: Cache Android SDK
+#        id: android-cache
+#        uses: actions/cache@v4
+#        with:
+#          path: ${{ env.ANDROID_HOME }}
+#          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
+#      - name: Debug cache key
+#        run: |
+#          echo "Cache key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}"
+#          echo "Cache hit: ${{ steps.android-cache.outputs.cache-hit }}"
+#          echo "Cache condition: ${{ steps.android-cache.outputs.cache-hit != 'true' }}"
+#          echo "ANDROID_HOME: ${{ env.ANDROID_HOME }}"
+
+      # Setup Android SDK using requested configuration
+      - name: Setup Android SDK
+        uses: amyu/setup-android@v5
         with:
-          path: ${{ env.ANDROID_HOME }}
-          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          cache-disabled: false
+          # Using the requested custom cache key
+          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          # Using environment variables as requested
+          sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
+          build-tools-version: ${{ env.ANDROID_SDK_VER }}
+          ndk-version: ${{ env.NDK_VER }}
+          command-line-tools-version: 19.0
+          generate-job-summary: false
 
-      - name: Debug cache key
-        run: |
-          echo "Cache key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}"
-          echo "Cache hit: ${{ steps.android-cache.outputs.cache-hit }}"
-          echo "Cache condition: ${{ steps.android-cache.outputs.cache-hit != 'true' }}"
-          echo "ANDROID_HOME: ${{ env.ANDROID_HOME }}"
-
-      - name: Install Android SDK & NDK (if cache-miss)
-        if: steps.android-cache.outputs.cache-hit != 'true'
-        run: |
-          for pkg in wget unzip; do
-            if ! command -v $pkg &> /dev/null; then
-              echo "Installing $pkg..."
-              brew install $pkg
-            else
-              echo "$pkg already installed"
-            fi
-          done
-
+#      - name: Install Android SDK & NDK (if cache-miss)
+#        if: steps.android-cache.outputs.cache-hit != 'true'
+#        run: |
+#          for pkg in wget unzip; do
+#            if ! command -v $pkg &> /dev/null; then
+#              echo "Installing $pkg..."
+#              brew install $pkg
+#            else
+#              echo "$pkg already installed"
+#            fi
+#          done
+#
           # Temporary workspace
-          mkdir -p $HOME/android-tmp
-          cd $HOME/android-tmp
+#          mkdir -p $HOME/android-tmp
+#          cd $HOME/android-tmp
+#
+#          echo "Downloading command line tools..."
+#          wget https://dl.google.com/android/repository/commandlinetools-mac-10406996_latest.zip -O tools.zip
+#
+#          echo "Extracting..."
+#          unzip tools.zip
+#          rm tools.zip
 
-          echo "Downloading command line tools..."
-          wget https://dl.google.com/android/repository/commandlinetools-mac-10406996_latest.zip -O tools.zip
-
-          echo "Extracting..."
-          unzip tools.zip
-          rm tools.zip
-
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          
-          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
-          
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-            "platform-tools" \
-            "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
-            "build-tools;${{ env.ANDROID_SDK_VER }}" \
-            "ndk;${{ env.NDK_VER }}" \
-            "platforms;${{ env.ANDROID_PLATFORM_VER_2 }}" \
-            "build-tools;${{ env.ANDROID_SDK_VER_2 }}"
+#          mkdir -p $ANDROID_HOME/cmdline-tools
+#          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+#
+#          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
+#
+#          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+#            "platform-tools" \
+#            "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
+#            "build-tools;${{ env.ANDROID_SDK_VER }}" \
+#            "ndk;${{ env.NDK_VER }}" \
+#            "platforms;${{ env.ANDROID_PLATFORM_VER_2 }}" \
+#            "build-tools;${{ env.ANDROID_SDK_VER_2 }}"
 
       # ---------- Flutter Cache ----------
       - name: Cache Flutter SDK
@@ -191,11 +205,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Restore Android SDK cache
-        uses: actions/cache/restore@v4
+#      - name: Restore Android SDK cache
+#        uses: actions/cache/restore@v4
+#        with:
+#          path: ${{ env.ANDROID_HOME }}
+#          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
+      # Restore/Setup Android SDK and NDK using requested configuration
+      - name: Restore/Setup Android SDK
+        uses: amyu/setup-android@v5
         with:
-          path: ${{ env.ANDROID_HOME }}
-          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          cache-disabled: false
+          # Using the requested custom cache key
+          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          # Using environment variables as requested
+          sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
+          build-tools-version: ${{ env.ANDROID_SDK_VER }}
+          ndk-version: ${{ env.NDK_VER }}
+          command-line-tools-version: 19.0
+          generate-job-summary: false
 
       - name: Restore Flutter SDK cache
         uses: actions/cache/restore@v4
