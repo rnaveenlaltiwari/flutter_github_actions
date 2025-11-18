@@ -121,16 +121,7 @@ jobs:
           mkdir -p $ANDROID_HOME/cmdline-tools
           mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           
-          echo "Accepting licenses..."
-          # Loop until no pending licenses
-          for i in {1..5}; do
-            printf "y\n" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses | tee /tmp/license-output
-            if ! grep -q "not accepted" /tmp/license-output; then
-              echo "All licenses accepted!"
-              break
-            fi
-              echo "Retrying license acceptance..."
-          done
+          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
           
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
