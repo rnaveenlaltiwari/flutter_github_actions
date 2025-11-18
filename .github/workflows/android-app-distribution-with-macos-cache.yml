@@ -60,10 +60,20 @@ jobs:
             -in config.json.enc -out config.json \
             -base64 -pass pass:"$ENCRYPTION_KEY"
 
-      - name: Get flavors from config.json
+      - name: Get and Filter flavors from config.json
         id: get-flavors
         run: |
-          echo "flavors-json=$(jq -c '.apps | keys' config.json)" >> "$GITHUB_OUTPUT"
+          INPUT_FLAVOR="${{ github.event.inputs.flavor }}"
+          
+          if [ "$INPUT_FLAVOR" == "all" ]; then
+            # If 'all' is requested, output the full list of flavors
+            FLAVORS_TO_BUILD=$(jq -c '.apps | keys' config.json)
+          else
+            # If a specific flavor is requested, output only that flavor in a JSON array
+            FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
+          fi
+          
+          echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
 
   #   Pre-install & Cache ANDROID SDK + NDK + Flutter SDK + Flutter Artifacts
   setup-caches:
@@ -261,7 +271,6 @@ jobs:
           restore-keys: deps-${{ runner.os }}-
 
       - name: Install jq
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
           if ! command -v jq &> /dev/null; then
             brew install jq
@@ -271,14 +280,12 @@ jobs:
 
       # ---------- Config ----------
       - name: Decrypt config.json
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
           openssl enc -aes-256-cbc -d -salt \
             -in config.json.enc -out config.json \
             -base64 -pass pass:"$ENCRYPTION_KEY"
 
       - name: Load flavor config
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         id: flavor-config
         run: |
           APP=${{ matrix.flavor }}
@@ -292,7 +299,6 @@ jobs:
 
       # ---------- Keystore ----------
       - name: Setup keystore
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
           mkdir -p android/keystore
           echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
@@ -305,17 +311,14 @@ jobs:
 
       # ---------- ENV ----------
       - name: Setup env variables
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: jq -r '.common.env | to_entries[] | "\(.key)=\(.value)"' config.json >> .env
 
       # ---------- ENV Part ----------
       - name: Generate env.g.dart
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: dart run build_runner build --delete-conflicting-outputs
 
       # ---------- BUILD (AAB) ----------
       - name: Build AppBundle
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
           flutter pub get
           flutter build appbundle \
@@ -325,7 +328,6 @@ jobs:
 
       # ---------- ARTIFACTS ----------
       - name: Upload artifacts
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.flavor }}-build
@@ -344,18 +346,15 @@ jobs:
 
       # ---------- FASTLANE ----------
       - name: Setup Ruby
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
           bundler-cache: true
 
       - name: Install Fastlane
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: gem install fastlane -NV
 
       - name: Upload to Play Distribution with Fastlane
-        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
         run: |
           FLAVOR=${{ matrix.flavor }}
           AAB="build/app/outputs/bundle/${FLAVOR}Release/app-${FLAVOR}-release.aab"
