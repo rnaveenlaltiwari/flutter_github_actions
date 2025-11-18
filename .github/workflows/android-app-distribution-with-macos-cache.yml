@@ -86,7 +86,7 @@ jobs:
           # This enables the automatic cache restoration and saving
           cache: true
           # Use a stable, unique key for the cache
-          cache-key: android-v1-${{ runner.os }}-${{ env.ANDROID_PLATFORM_VER }}-${{ env.NDK_VER }}
+#          cache-key: android-v1-${{ runner.os }}-${{ env.ANDROID_PLATFORM_VER }}-${{ env.NDK_VER }}
           # List all required packages for installation/caching
           packages: |
             platform-tools
@@ -164,7 +164,7 @@ jobs:
         with:
           cache: true
           # Must use the same key as the setup job
-          cache-key: android-v1-${{ runner.os }}-${{ env.ANDROID_PLATFORM_VER }}-${{ env.NDK_VER }}
+#          cache-key: android-v1-${{ runner.os }}-${{ env.ANDROID_PLATFORM_VER }}-${{ env.NDK_VER }}
           packages: |
             platform-tools
             platforms;${{ env.ANDROID_PLATFORM_VER }}
