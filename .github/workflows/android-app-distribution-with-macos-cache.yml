@@ -24,7 +24,9 @@ on:
 env:
   FLUTTER_VERSION: 3.24.5
   ANDROID_SDK_VER: "35.0.0"
+  ANDROID_SDK_VER_2: "34.0.0"
   ANDROID_PLATFORM_VER: "android-36"
+  ANDROID_PLATFORM_VER_2: "android-31"
   NDK_VER: "29.0.14033849"
 #  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
   ANDROID_HOME: /Users/runner/Library/Android/sdk  # macOS Android SDK default
@@ -84,7 +86,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.ANDROID_HOME }}
-          key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
 
       - name: Debug cache key
         run: |
@@ -119,16 +121,24 @@ jobs:
           mkdir -p $ANDROID_HOME/cmdline-tools
           mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           
-          echo "Accepting licenses & installing packages..."
-          # ( sleep 3 & yes ) | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          printf "y\ny\ny\ny\ny\n" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
+          echo "Accepting licenses..."
+          # Loop until no pending licenses
+          for i in {1..5}; do
+            printf "y\n" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses | tee /tmp/license-output
+            if ! grep -q "not accepted" /tmp/license-output; then
+              echo "All licenses accepted!"
+              break
+            fi
+              echo "Retrying license acceptance..."
+          done
           
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
             "build-tools;${{ env.ANDROID_SDK_VER }}" \
-            "ndk;${{ env.NDK_VER }}"
+            "ndk;${{ env.NDK_VER }}" \
+            "platforms;${{ env.ANDROID_PLATFORM_VER_2 }}" \
+            "build-tools;${{ env.ANDROID_SDK_VER_2 }}"
 
       # ---------- Flutter Cache ----------
       - name: Cache Flutter SDK
@@ -136,7 +146,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.flutter-sdk
-          key: flutter-${{ env.FLUTTER_VERSION }}
+          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
 
       - name: Install Flutter SDK (if cache-miss)
         if: steps.flutter-cache.outputs.cache-hit != 'true'
@@ -194,13 +204,13 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.ANDROID_HOME }}
-          key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
 
       - name: Restore Flutter SDK cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.flutter-sdk
-          key: flutter-${{ env.FLUTTER_VERSION }}
+          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
 
       - name: Restore Flutter Artifact Cache
         uses: actions/cache/restore@v4
