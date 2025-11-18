@@ -1,0 +1,303 @@
+name: Android App Build & Distribution with macos caching
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Choose which flavor to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+          - bookmark
+#  push:
+#    branches:
+#      - feature/BP-7162-github-flutter-ci
+#  pull_request:
+#    branches:
+#      - production_v2  # PR must target main
+
+env:
+  FLUTTER_VERSION: 3.24.5
+  ANDROID_SDK_VER: "35.0.0"
+  ANDROID_PLATFORM_VER: "android-36"
+  NDK_VER: "29.0.14033849"
+  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
+
+#   Extract list of flavors from encrypted config.json
+jobs:
+  extract-flavors:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: brew install jq
+
+      - name: Decrypt config.json
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt \
+            -in config.json.enc -out config.json \
+            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Get flavors from config.json
+        id: get-flavors
+        run: |
+          echo "flavors-json=$(jq -c '.apps | keys' config.json)" >> "$GITHUB_OUTPUT"
+
+  #   Pre-install & Cache ANDROID SDK + NDK + Flutter SDK
+  setup-caches:
+    needs: extract-flavors
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # EXPORT ANDROID_HOME and ADD FLUTTER PATH
+      - name: Export ANDROID_HOME & PATH
+        run: |
+          echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
+          echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+
+      # ---------- Android + NDK Cache ----------
+      - name: Cache Android SDK
+        id: android-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}
+          key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
+      - name: Debug cache key
+        run: |
+          echo "Cache key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}"
+          echo "Cache hit: ${{ steps.android-cache.outputs.cache-hit }}"
+          echo "Cache condition: ${{ steps.android-cache.outputs.cache-hit != 'true' }}"
+          echo "ANDROID_HOME: ${{ env.ANDROID_HOME }}"
+
+      - name: Install Android SDK & NDK (if cache-miss)
+        if: steps.android-cache.outputs.cache-hit != 'true'
+        run: |
+          brew install wget unzip
+
+          # Temporary workspace
+          mkdir -p $HOME/android-tmp
+          cd $HOME/android-tmp
+
+          echo "Downloading command line tools..."
+          wget https://dl.google.com/android/repository/commandlinetools-mac-10406996_latest.zip -O tools.zip
+
+          echo "Extracting..."
+          unzip tools.zip
+          rm tools.zip
+
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+
+          echo "Accepting licenses & installing packages..."
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
+            "build-tools;${{ env.ANDROID_SDK_VER }}" \
+            "ndk;${{ env.NDK_VER }}"
+
+      # ---------- Flutter Cache ----------
+      - name: Cache Flutter SDK
+        id: flutter-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.flutter-sdk
+          key: flutter-${{ env.FLUTTER_VERSION }}
+
+      - name: Install Flutter SDK (if cache-miss)
+        if: steps.flutter-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable ~/.flutter-sdk
+          cd ~/.flutter-sdk
+          git checkout ${{ env.FLUTTER_VERSION }}
+
+      # Add Flutter SDK bin to PATH
+      - name: Add Flutter SDK to PATH
+        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+
+      # Run Flutter Doctor
+      - name: Run Flutter Doctor
+        run: flutter doctor -v
+
+  build:
+    needs: [extract-flavors, setup-caches]
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: .
+    strategy:
+      fail-fast: false
+      max-parallel: 2  # limits parallel jobs to prevent memory overload
+      matrix:
+        flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      BUILD_FLAVOR: ${{ github.event.inputs.flavor || 'bookmark' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore Android SDK cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}
+          key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
+      - name: Restore Flutter SDK cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.flutter-sdk
+          key: flutter-${{ env.FLUTTER_VERSION }}
+
+      # Add Flutter SDK bin to PATH
+      - name: Add Flutter SDK to PATH
+        run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+
+      # Run Flutter Doctor
+      - name: Run Flutter Doctor
+        run: flutter doctor -v
+
+      # ---------- Restore Dependency Caches ----------
+      - name: Restore dependencies cache
+        id: deps-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: deps-${{ runner.os }}-
+
+      - name: Install jq
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: brew install jq
+
+      # ---------- Config ----------
+      - name: Decrypt config.json
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt \
+            -in config.json.enc -out config.json \
+            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Load flavor config
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        id: flavor-config
+        run: |
+          APP=${{ matrix.flavor }}
+          PLAY_JSON=$(jq -c ".common.play.serviceAccountJson" config.json)
+          echo "PLAY_PUBLISH_SERVICE_ACCOUNT_JSON=$PLAY_JSON" >> $GITHUB_ENV
+
+          echo "KEYSTORE_BASE64=$(jq -r ".apps.${APP}.android.keystore.file_base64" config.json)" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=$(jq -r ".apps.${APP}.android.keystore.store_password" config.json)" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$(jq -r ".apps.${APP}.android.keystore.key_alias" config.json)" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$(jq -r ".apps.${APP}.android.keystore.key_password" config.json)" >> $GITHUB_ENV
+
+      # ---------- Keystore ----------
+      - name: Setup keystore
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          mkdir -p android/keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
+          cat > android/signing.properties <<EOF
+          ${{ matrix.flavor }}.storeFile=../keystore/${{ matrix.flavor }}.jks
+          ${{ matrix.flavor }}.storePassword=$KEYSTORE_PASSWORD
+          ${{ matrix.flavor }}.keyAlias=$KEY_ALIAS
+          ${{ matrix.flavor }}.keyPassword=$KEY_PASSWORD
+          EOF
+
+      # ---------- ENV ----------
+      - name: Setup env variables
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: jq -r '.common.env | to_entries[] | "\(.key)=\(.value)"' config.json >> .env
+
+      # ---------- ENV Part ----------
+      - name: Generate env.g.dart
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      # ---------- BUILD (AAB) ----------
+      - name: Build AppBundle
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          flutter pub get
+          flutter build appbundle \
+            --flavor ${{ matrix.flavor }} \
+            --release \
+            -t lib/main_${{ matrix.flavor }}.dart
+
+      # ---------- ARTIFACTS ----------
+      - name: Upload artifacts
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.flavor }}-build
+          path: build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+
+      # ---------- Save Dependencies Cache (only once) ----------
+      - name: Save dependencies cache
+        if: steps.deps-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+
+      # ---------- FASTLANE ----------
+      - name: Setup Ruby
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+
+      - name: Install Fastlane
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: gem install fastlane -NV
+
+      - name: Upload to Play Distribution with Fastlane
+        if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
+        run: |
+          FLAVOR=${{ matrix.flavor }}
+          AAB="build/app/outputs/bundle/${FLAVOR}Release/app-${FLAVOR}-release.aab"
+          KEY="google-play-key.json"
+          
+          echo '${{ env.PLAY_PUBLISH_SERVICE_ACCOUNT_JSON }}' > $KEY
+          
+          PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
+          
+          fastlane supply \
+            --aab "$AAB" \
+            --package_name "$PKG" \
+            --track production \
+            --json_key "$KEY" \
+            --metadata_path "./release-notes/metadata/android" \
+            --rollout 1.0 \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true
+          
+          rm -f "$KEY"
