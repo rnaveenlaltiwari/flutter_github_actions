@@ -28,7 +28,7 @@ env:
   ANDROID_PLATFORM_VER: "android-36"
   ANDROID_PLATFORM_VER_2: "android-31"
   NDK_VER: "29.0.14033849"
-#  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
+  #  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
   ANDROID_HOME: /Users/runner/Library/Android/sdk  # macOS Android SDK default
 
 #   Extract list of flavors from encrypted config.json
@@ -77,24 +77,59 @@ jobs:
         run: |
           echo "ANDROID_HOME=${{ env.ANDROID_HOME }}" >> $GITHUB_ENV
           echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
-      # ---------- Android + NDK Setup & Cache (Replaces manual steps) ----------
-      - name: Setup & Cache Android SDK, NDK, and Platform Tools
-        uses: maxim-lobanov/setup-android-tools@v1
-        id: android-setup
+      # ---------- Android + NDK Cache ----------
+      - name: Cache Android SDK
+        id: android-cache
+        uses: actions/cache@v4
         with:
-          # This enables the automatic cache restoration and saving
-          cache: true
-          # Use a stable, unique key for the cache
-#          cache-key: android-v1-${{ runner.os }}-${{ env.ANDROID_PLATFORM_VER }}-${{ env.NDK_VER }}
-          # List all required packages for installation/caching
-          packages: |
-            platform-tools
-            platforms;${{ env.ANDROID_PLATFORM_VER }}
-            platforms;${{ env.ANDROID_PLATFORM_VER_2 }}
-            build-tools;${{ env.ANDROID_SDK_VER }}
-            build-tools;${{ env.ANDROID_SDK_VER_2 }}
-            ndk;${{ env.NDK_VER }}
+          path: ${{ env.ANDROID_HOME }}
+          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+
+      - name: Debug cache key
+        run: |
+          echo "Cache key: android-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}"
+          echo "Cache hit: ${{ steps.android-cache.outputs.cache-hit }}"
+          echo "Cache condition: ${{ steps.android-cache.outputs.cache-hit != 'true' }}"
+          echo "ANDROID_HOME: ${{ env.ANDROID_HOME }}"
+
+      - name: Install Android SDK & NDK (if cache-miss)
+        if: steps.android-cache.outputs.cache-hit != 'true'
+        run: |
+          for pkg in wget unzip; do
+            if ! command -v $pkg &> /dev/null; then
+              echo "Installing $pkg..."
+              brew install $pkg
+            else
+              echo "$pkg already installed"
+            fi
+          done
+
+          # Temporary workspace
+          mkdir -p $HOME/android-tmp
+          cd $HOME/android-tmp
+
+          echo "Downloading command line tools..."
+          wget https://dl.google.com/android/repository/commandlinetools-mac-10406996_latest.zip -O tools.zip
+
+          echo "Extracting..."
+          unzip tools.zip
+          rm tools.zip
+
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          
+          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
+          
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
+            "build-tools;${{ env.ANDROID_SDK_VER }}" \
+            "ndk;${{ env.NDK_VER }}" \
+            "platforms;${{ env.ANDROID_PLATFORM_VER_2 }}" \
+            "build-tools;${{ env.ANDROID_SDK_VER_2 }}"
 
       # ---------- Flutter Cache ----------
       - name: Cache Flutter SDK
@@ -156,22 +191,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ---------- Android SDK Restore/Setup (Replaces manual restore) ----------
-      # This action will restore the cached Android SDK from the setup-caches job
-      # or re-install it if the cache key changed.
-      - name: Restore/Setup Android SDK and NDK
-        uses: maxim-lobanov/setup-android-tools@v1
+      - name: Restore Android SDK cache
+        uses: actions/cache/restore@v4
         with:
-          cache: true
-          # Must use the same key as the setup job
-#          cache-key: android-v1-${{ runner.os }}-${{ env.ANDROID_PLATFORM_VER }}-${{ env.NDK_VER }}
-          packages: |
-            platform-tools
-            platforms;${{ env.ANDROID_PLATFORM_VER }}
-            platforms;${{ env.ANDROID_PLATFORM_VER_2 }}
-            build-tools;${{ env.ANDROID_SDK_VER }}
-            build-tools;${{ env.ANDROID_SDK_VER_2 }}
-            ndk;${{ env.NDK_VER }}
+          path: ${{ env.ANDROID_HOME }}
+          key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
 
       - name: Restore Flutter SDK cache
         uses: actions/cache/restore@v4
