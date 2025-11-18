@@ -26,7 +26,8 @@ env:
   ANDROID_SDK_VER: "35.0.0"
   ANDROID_PLATFORM_VER: "android-36"
   NDK_VER: "29.0.14033849"
-  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
+#  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
+  ANDROID_HOME: /Users/runner/Library/Android/sdk  # macOS Android SDK default
 
 #   Extract list of flavors from encrypted config.json
 jobs:
