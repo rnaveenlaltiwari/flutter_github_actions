@@ -120,7 +120,10 @@ jobs:
           mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           
           echo "Accepting licenses & installing packages..."
-          ( sleep 3 & yes ) | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+#          ( sleep 3 & yes ) | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          printf "y\ny\ny\ny\ny\n" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
