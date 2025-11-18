@@ -41,14 +41,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: brew install jq
+      - name: Install jq (only if missing)
+        run: |
+          if ! command -v jq &> /dev/null; then
+            brew install jq
+          else
+            echo "jq already installed"
+          fi
 
       - name: Decrypt config.json
         env:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
-          openssl enc -aes-256-cbc -d -salt \
+          openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -d -salt \
             -in config.json.enc -out config.json \
             -base64 -pass pass:"$ENCRYPTION_KEY"
 
@@ -57,7 +62,7 @@ jobs:
         run: |
           echo "flavors-json=$(jq -c '.apps | keys' config.json)" >> "$GITHUB_OUTPUT"
 
-  #   Pre-install & Cache ANDROID SDK + NDK + Flutter SDK
+  #   Pre-install & Cache ANDROID SDK + NDK + Flutter SDK + Flutter Artifacts
   setup-caches:
     needs: extract-flavors
     runs-on: macos-latest
@@ -90,7 +95,14 @@ jobs:
       - name: Install Android SDK & NDK (if cache-miss)
         if: steps.android-cache.outputs.cache-hit != 'true'
         run: |
-          brew install wget unzip
+          for pkg in wget unzip; do
+            if ! command -v $pkg &> /dev/null; then
+              echo "Installing $pkg..."
+              brew install $pkg
+            else
+              echo "$pkg already installed"
+            fi
+          done
 
           # Temporary workspace
           mkdir -p $HOME/android-tmp
@@ -105,10 +117,9 @@ jobs:
 
           mkdir -p $ANDROID_HOME/cmdline-tools
           mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-
+          
           echo "Accepting licenses & installing packages..."
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-
+          ( sleep 3 & yes ) | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;${{ env.ANDROID_PLATFORM_VER }}" \
@@ -137,6 +148,24 @@ jobs:
       # Run Flutter Doctor
       - name: Run Flutter Doctor
         run: flutter doctor -v
+
+      # ---------- Cache Flutter Artifacts ----------
+      - name: Cache Flutter Build Artifacts
+        id: flutter-artifacts-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+            $HOME/.flutter-sdk/bin/cache/artifacts
+          key: flutter-artifacts-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+
+      - name: Fetch Flutter Artifacts (if cache-miss)
+        if: steps.flutter-artifacts-cache.outputs.cache-hit != 'true'
+        run: |
+          flutter precache --android
+          flutter precache --macos
+
 
   build:
     needs: [extract-flavors, setup-caches]
@@ -169,6 +198,15 @@ jobs:
           path: ~/.flutter-sdk
           key: flutter-${{ env.FLUTTER_VERSION }}
 
+      - name: Restore Flutter Artifact Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+            $HOME/.flutter-sdk/bin/cache/artifacts
+          key: flutter-artifacts-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+
       # Add Flutter SDK bin to PATH
       - name: Add Flutter SDK to PATH
         run: echo "$HOME/.flutter-sdk/bin" >> $GITHUB_PATH
@@ -191,7 +229,12 @@ jobs:
 
       - name: Install jq
         if: ${{ env.BUILD_FLAVOR == 'all' || env.BUILD_FLAVOR == matrix.flavor }}
-        run: brew install jq
+        run: |
+          if ! command -v jq &> /dev/null; then
+            brew install jq
+          else
+            echo "jq already installed"
+          fi
 
       # ---------- Config ----------
       - name: Decrypt config.json
