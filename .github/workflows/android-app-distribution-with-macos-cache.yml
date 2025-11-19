@@ -136,36 +136,36 @@ jobs:
 #          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
 #          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
 
-      # ---------- FASTLANE CACHING (Provider) ----------
+      ## 💾 Fastlane Bundler Caching (Provider)
 
-      - name: Setup Ruby for Fastlane Caching
-        id: ruby_setup_cache
+      # 1. Create a minimal Gemfile
+      - name: Create Gemfile for Fastlane
+        run: echo "gem 'fastlane'" > Gemfile
+
+      # 2. Setup Ruby environment and attempt to restore/install gems
+      - name: Setup Ruby, Restore/Install Gems
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
-          bundler-cache: false
+          # 'bundler-cache: true' automatically handles gem installation and caching:
+          # A) It restores the cache using the Gemfile.lock hash.
+          # B) If miss, it runs bundle install and automatically saves the cache.
+          bundler-cache: true
 
-      - name: Restore Fastlane (Ruby Gem) Cache
-        id: fastlane_cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ steps.ruby_setup_cache.outputs.ruby-path }}/lib/ruby/gems/3.2.0
-          # Stable cache key based only on OS and Ruby Version
-          key: ${{ runner.os }}-fastlane-gem-3.2
-          restore-keys: |
-            ${{ runner.os }}-fastlane-gem-
+      # NOTE: We don't need manual save/restore for the gems themselves because
+      # `bundler-cache: true` handles the gem installation cache.
 
-      - name: Install Fastlane (if cache miss)
-        if: steps.fastlane_cache.outputs.cache-hit != 'true'
-        run: gem install fastlane -NV
-
-      - name: Save Fastlane (Ruby Gem) Cache
-        if: steps.fastlane_cache.outputs.cache-hit != 'true'
+      # 3. Manually cache Gemfile and Gemfile.lock
+      # We cache these two small files so 'build' jobs don't have to create them,
+      # ensuring the Bundler cache key is always correct.
+      - name: Save Bundler Files Cache
         uses: actions/cache/save@v4
         with:
-          path: ${{ steps.ruby_setup_cache.outputs.ruby-path }}/lib/ruby/gems/3.2.0
-          # Stable cache key based only on OS and Ruby Version
-          key: ${{ runner.os }}-fastlane-gem-3.2
+          path: |
+            Gemfile
+            Gemfile.lock
+          # Key based on OS and a static marker since the contents are fixed
+          key: ${{ runner.os }}-bundler-files-3.2
 
           # Cache Ruby Gems + Bundler + Fastlane
 #      - name: Setup Ruby
@@ -431,36 +431,28 @@ jobs:
 #          key: ruby-gems-${{ runner.os }}-${{ hashFiles('Gemfile.lock') }}
 #          restore-keys: ruby-gems-${{ runner.os }}-
 
-      # ---------- FASTLANE CACHING (Provider) ----------
+      ## ♻️ Fastlane Bundler Caching (Restorer)
 
-      - name: Setup Ruby for Fastlane Caching
-        id: ruby_setup_cache
+      # 1. Restore Gemfile and Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            Gemfile
+            Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # 2. Setup Ruby and restore gems using Bundler cache
+      - name: Setup Ruby and Restore Gems
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
-          bundler-cache: false
-
-      - name: Restore Fastlane (Ruby Gem) Cache
-        id: fastlane_cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ steps.ruby_setup_cache.outputs.ruby-path }}/lib/ruby/gems/3.2.0
-          # Stable cache key based only on OS and Ruby Version
-          key: ${{ runner.os }}-fastlane-gem-3.2
-          restore-keys: |
-            ${{ runner.os }}-fastlane-gem-
-
-      - name: Install Fastlane (if cache miss)
-        if: steps.fastlane_cache.outputs.cache-hit != 'true'
-        run: gem install fastlane -NV
-
-      - name: Save Fastlane (Ruby Gem) Cache
-        if: steps.fastlane_cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ steps.ruby_setup_cache.outputs.ruby-path }}/lib/ruby/gems/3.2.0
-          # Stable cache key based only on OS and Ruby Version
-          key: ${{ runner.os }}-fastlane-gem-3.2
+          # This step automatically looks for Gemfile.lock (restored above)
+          # to compute the cache key and restore the installed gems.
+          bundler-cache: true
 
       - name: Upload to Play Distribution with Fastlane
         run: |
