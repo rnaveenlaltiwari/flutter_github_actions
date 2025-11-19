@@ -139,25 +139,21 @@ jobs:
 
       # Cache Ruby Gems + Bundler + Fastlane
       - name: Setup Ruby
+        id: ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
-          bundler-cache: true
+          bundler-cache: false
 
       - name: Install Fastlane
         run: gem install fastlane -NV
 
-      - name: Save Ruby + Bundler + Fastlane Cache
-        uses: actions/cache@v4
+      - name: Save Ruby & Fastlane Cache
+        uses: actions/cache/save@v4
         with:
           path: |
-            ~/.gem
-            ~/.bundle
-            vendor/bundle
-          key: ruby-gems-${{ runner.os }}-${{ hashFiles('Gemfile.lock') }}
-          restore-keys: |
-            ruby-gems-${{ runner.os }}-
-            ruby-gems-
+            ${{ steps.ruby.outputs.rubyLocation }}/lib/ruby/gems/3.2.0
+          key: ruby-gems-${{ runner.os }}-${{ steps.ruby.outputs.ruby-prefix }}-${{ hashFiles('Gemfile.lock') }}
 
 #      - name: Run Flutter Doctor
 #        run: flutter doctor -v
@@ -397,17 +393,13 @@ jobs:
 #            ~/.gradle/wrapper
 #          key: deps-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
 
-      - name: Restore Ruby + Bundler + Fastlane Cache
-        uses: actions/cache@v4
+      - name: Restore Ruby Cache
+        uses: actions/cache/restore@v4
         with:
           path: |
-            ~/.gem
-            ~/.bundle
-            vendor/bundle
+            ${{ steps.ruby.outputs.rubyLocation }}/lib/ruby/gems/3.2.0
           key: ruby-gems-${{ runner.os }}-${{ hashFiles('Gemfile.lock') }}
-          restore-keys: |
-            ruby-gems-${{ runner.os }}-
-            ruby-gems-
+          restore-keys: ruby-gems-${{ runner.os }}-
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
