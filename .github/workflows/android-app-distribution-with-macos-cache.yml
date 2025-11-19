@@ -466,7 +466,7 @@ jobs:
           
           PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
           
-          fastlane supply \
+          bundle exec fastlane supply \
             --aab "$AAB" \
             --package_name "$PKG" \
             --track production \
