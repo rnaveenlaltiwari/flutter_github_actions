@@ -373,7 +373,7 @@ jobs:
           KEY="google-play-key.json"
           
           # Write the service account JSON to a file
-          echo '${{ env.PLAY_PUBLISH_SERVICE_ACCOUNT_JSON }}' > $KEY
+#          echo '${{ env.PLAY_PUBLISH_SERVICE_ACCOUNT_JSON }}' > $KEY
           
           # Get the package name from the properties file
           PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
