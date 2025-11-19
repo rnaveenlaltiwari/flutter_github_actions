@@ -76,6 +76,12 @@ jobs:
             -in config.json.enc -out config.json \
             -base64 -pass pass:"$ENCRYPTION_KEY"
 
+      - name: Load config.json as Base64
+        id: config-file
+        run: |
+          CONFIG_B64=$(base64 -w 0 config.json)
+          echo "config_b64=$CONFIG_B64" >> $GITHUB_OUTPUT
+
       - name: Get and Filter flavors from config.json
         id: get-flavors
         run: |
@@ -91,7 +97,6 @@ jobs:
           
           # Set the output variable for the next job's matrix
           echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
-
 
   # Job 2: Setup all dependencies and populate the shared caches.
   setup-caches:
@@ -128,7 +133,7 @@ jobs:
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
 
-      ## 💾 Fastlane Bundler Caching (Provider)
+      ## Fastlane Bundler Caching (Provider)
 
       # 1. Create a minimal Gemfile with the public source
       - name: Create Gemfile for Fastlane
@@ -141,9 +146,9 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
-          # `bundler-cache: true` manages:
+          # 'bundler-cache: true' manages:
           # 1. Restoring the gem cache (keyed by Gemfile.lock hash).
-          # 2. Running `bundle install` and saving the new cache if a miss occurs.
+          # 2. Running 'bundle install' and saving the new cache if a miss occurs.
           bundler-cache: true
 
       # 3. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
@@ -155,6 +160,7 @@ jobs:
             Gemfile.lock
           # Key is simple since the files content is static for a given ruby version
           key: ${{ runner.os }}-bundler-files-3.2
+          
   # Job 3: Build, Sign, and Distribute the Android App for each flavor.
   build:
     name: Build & Deploy ${{ matrix.flavor }}
@@ -213,11 +219,15 @@ jobs:
           fi
 
       # --- Configuration & Secrets ---
-      - name: Decrypt config.json
+#      - name: Decrypt config.json
+#        run: |
+#          openssl enc -aes-256-cbc -d -salt \
+#            -in config.json.enc -out config.json \
+#            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Restore config.json
         run: |
-          openssl enc -aes-256-cbc -d -salt \
-            -in config.json.enc -out config.json \
-            -base64 -pass pass:"$ENCRYPTION_KEY"
+          echo "${{ needs.extract-flavors.outputs.config_b64 }}" | base64 --decode > config.json
 
       - name: Load flavor config and set environment variables
         id: flavor-config
@@ -250,7 +260,7 @@ jobs:
       - name: Generate env.g.dart (Build Runner)
         run: dart run build_runner build --delete-conflicting-outputs
 
-      ## ♻️ Fastlane Bundler Caching (Restorer)
+      ## Fastlane Bundler Caching (Restorer)
 
       # 1. Restore Gemfile and Gemfile.lock
       - name: Restore Bundler Files Cache
