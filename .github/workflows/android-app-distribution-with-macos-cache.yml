@@ -140,7 +140,9 @@ jobs:
 
       # 1. Create a minimal Gemfile
       - name: Create Gemfile for Fastlane
-        run: echo "gem 'fastlane'" > Gemfile
+        run: |
+          echo 'source "https://rubygems.org"' > Gemfile
+          echo "gem 'fastlane'" >> Gemfile
 
       # 2. Setup Ruby environment and attempt to restore/install gems
       - name: Setup Ruby, Restore/Install Gems
