@@ -138,7 +138,16 @@ jobs:
 
 
       # Cache Ruby Gems + Bundler + Fastlane
-      - name: Cache Ruby + Bundler + Fastlane
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+
+      - name: Install Fastlane
+        run: gem install fastlane -NV
+
+      - name: Save Ruby + Bundler + Fastlane Cache
         uses: actions/cache@v4
         with:
           path: |
@@ -149,15 +158,6 @@ jobs:
           restore-keys: |
             ruby-gems-${{ runner.os }}-
             ruby-gems-
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.2
-          bundler-cache: true   # automatically installs and caches gems
-
-      - name: Install Fastlane
-        run: gem install fastlane -NV
 
 #      - name: Run Flutter Doctor
 #        run: flutter doctor -v
@@ -413,7 +413,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
-          bundler-cache: true   # Will NOT reinstall if cache exists
+          bundler-cache: true
 
       - name: Upload to Play Distribution with Fastlane
         run: |
