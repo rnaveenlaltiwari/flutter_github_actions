@@ -190,6 +190,19 @@ jobs:
           echo 'source "https://rubygems.org"' > Gemfile
           echo "gem 'fastlane'" >> Gemfile
 
+      # 2. 🔍 CHECK/RESTORE Cache for Gemfile/Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            Gemfile
+            Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          # Use restore-keys in case the primary key changes
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
       # 2. Setup Ruby and use Bundler to install/cache gems
       - name: Setup Ruby, Restore/Install Gems (Bundler)
         uses: ruby/setup-ruby@v1
@@ -202,6 +215,7 @@ jobs:
 
       # 3. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
       - name: Save Bundler Files Cache
+        if: steps.restore_bundler_files.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
