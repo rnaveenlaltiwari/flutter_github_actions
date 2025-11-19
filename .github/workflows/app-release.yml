@@ -203,7 +203,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bundler-files-
 
-      # 2. Setup Ruby and use Bundler to install/cache gems
+      # 3. Setup Ruby and use Bundler to install/cache gems
       - name: Setup Ruby, Restore/Install Gems (Bundler)
         uses: ruby/setup-ruby@v1
         with:
@@ -213,7 +213,7 @@ jobs:
           # 2. Running 'bundle install' and saving the new cache if a miss occurs.
           bundler-cache: true
 
-      # 3. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
+      # 4. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
       - name: Save Bundler Files Cache
         if: steps.restore_bundler_files.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -290,54 +290,6 @@ jobs:
       - name: Restore .env file
         run: |
           echo "${{ needs.extract-flavors.outputs.env_b64 }}" | base64 --decode > .env
-
-      # --- Tooling Setup ---
-#      - name: Install jq
-#        run: |
-#          if ! command -v jq &> /dev/null; then
-#            brew install jq
-#          else
-#            echo "jq already installed"
-#          fi
-
-      # --- Configuration & Secrets ---
-#      - name: Decrypt config.json
-#        run: |
-#          openssl enc -aes-256-cbc -d -salt \
-#            -in config.json.enc -out config.json \
-#            -base64 -pass pass:"$ENCRYPTION_KEY"
-
-#      - name: Restore config.json
-#        run: |
-#          echo "${{ needs.extract-flavors.outputs.config_b64 }}" | base64 --decode > config.json
-
-#      - name: Load flavor config and set environment variables
-#        id: flavor-config
-        # Extracts signing keys and service account JSON for the current flavor
-#        run: |
-#          APP=${{ matrix.flavor }}
-#          PLAY_JSON=$(jq -c ".common.play.serviceAccountJson" config.json)
-#          echo "PLAY_PUBLISH_SERVICE_ACCOUNT_JSON=$PLAY_JSON" >> $GITHUB_ENV
-#
-#          echo "KEYSTORE_BASE64=$(jq -r ".apps.${APP}.android.keystore.file_base64" config.json)" >> $GITHUB_ENV
-#          echo "KEYSTORE_PASSWORD=$(jq -r ".apps.${APP}.android.keystore.store_password" config.json)" >> $GITHUB_ENV
-#          echo "KEY_ALIAS=$(jq -r ".apps.${APP}.android.keystore.key_alias" config.json)" >> $GITHUB_ENV
-#          echo "KEY_PASSWORD=$(jq -r ".apps.${APP}.android.keystore.key_password" config.json)" >> $GITHUB_ENV
-
-#      - name: Setup keystore
-        # Decodes the base64 keystore file and creates the signing properties file
-#        run: |
-#          mkdir -p android/keystore
-#          echo "$KEYSTORE_BASE64" | base64 --decode > "android/keystore/${{ matrix.flavor }}.jks"
-#          cat > android/signing.properties <<EOF
-#          ${{ matrix.flavor }}.storeFile=../keystore/${{ matrix.flavor }}.jks
-#          ${{ matrix.flavor }}.storePassword=$KEYSTORE_PASSWORD
-#          ${{ matrix.flavor }}.keyAlias=$KEY_ALIAS
-#          ${{ matrix.flavor }}.keyPassword=$KEY_PASSWORD
-#          EOF
-
-#      - name: Setup env variables (from config)
-#        run: jq -r '.common.env | to_entries[] | "\(.key)=\(.value)"' config.json >> .env
 
       - name: Generate env.g.dart (Build Runner)
         run: dart run build_runner build --delete-conflicting-outputs
