@@ -26,7 +26,8 @@ env:
   ANDROID_SDK_VER: "35.0.0"
   ANDROID_SDK_VER_2: "34.0.0"
   ANDROID_PLATFORM_VER: "36"
-  ANDROID_PLATFORM_VER_2: "android-31"
+  ANDROID_PLATFORM_VER_2: "34"
+  ANDROID_PLATFORM_VER_3: "31"
   NDK_VER: "29.0.14033849"
   #  ANDROID_HOME: $HOME/Library/Android/sdk  # macOS Android SDK default
 #  ANDROID_HOME: /Users/runner/Library/Android/sdk  # macOS Android SDK default
@@ -80,7 +81,7 @@ jobs:
     needs: extract-flavors
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+#      - uses: actions/checkout@v4
 
       # EXPORT ANDROID_HOME and ADD FLUTTER PATH
 #      - name: Export ANDROID_HOME & PATH
@@ -113,8 +114,13 @@ jobs:
           # Using the requested custom cache key
           cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
           # Using environment variables as requested
-          sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
-          build-tools-version: ${{ env.ANDROID_SDK_VER }}
+          sdk-version: |
+            ${{ env.ANDROID_PLATFORM_VER }}
+            ${{ env.ANDROID_PLATFORM_VER_2 }}
+            ${{ env.ANDROID_PLATFORM_VER_3 }}
+          build-tools-version: |
+            ${{ env.ANDROID_SDK_VER }}
+            ${{ env.ANDROID_SDK_VER_2 }}
           ndk-version: ${{ env.NDK_VER }}
           command-line-tools-version: 10406996
           generate-job-summary: false
@@ -128,8 +134,8 @@ jobs:
           # optional parameters follow
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
-          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
-          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+#          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
+#          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
 #      - name: Run Flutter Doctor
 #        run: flutter doctor -v
 
