@@ -130,8 +130,8 @@ jobs:
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
           pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
           pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
-      - name: Run Flutter Doctor
-        run: flutter doctor -v
+#      - name: Run Flutter Doctor
+#        run: flutter doctor -v
 
           #      - name: Install Android SDK & NDK (if cache-miss)
 #        if: steps.android-cache.outputs.cache-hit != 'true'
@@ -255,8 +255,8 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: false
-      - name: Run Flutter Doctor
-        run: flutter doctor -v
+#      - name: Run Flutter Doctor
+#        run: flutter doctor -v
 
 #      - name: Restore Flutter SDK cache
 #        uses: actions/cache/restore@v4
