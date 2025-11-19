@@ -119,7 +119,7 @@ jobs:
             ${{ env.ANDROID_PLATFORM_VER_2 }}
             ${{ env.ANDROID_PLATFORM_VER_3 }}
           build-tools-version: |
-            ${{ env.ANDROID_SDK_VER }}
+#            ${{ env.ANDROID_SDK_VER }}
             ${{ env.ANDROID_SDK_VER_2 }}
           ndk-version: ${{ env.NDK_VER }}
           command-line-tools-version: 10406996
