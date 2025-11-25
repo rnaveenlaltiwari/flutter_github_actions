@@ -325,6 +325,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           cache-read-only: false
+          gradle-home-cache-key: gradle-${{ runner.os }}
 
       # --- Build Step ---
       - name: Build AppBundle (AAB)
@@ -376,9 +377,9 @@ jobs:
 
           if [ $EXIT_CODE -ne 0 ]; then
             # Highlighted message in GitHub Actions (without failing)
-            echo "::error ::Play Store upload FAILED for flavor '${FLAVOR}'."
-            echo "::error ::Reason: $(echo "$FASTLANE_OUTPUT" | head -n 5)"
-            echo "::notice ::AAB built successfully, but upload failed. See logs above."
+            echo "::error ::Play Store upload FAILED for flavor '${FLAVOR}'.\nAAB built successfully, but upload failed. See logs above."
+            # echo "::error ::Reason: $(echo "$FASTLANE_OUTPUT" | head -n 5)"
+            # echo "::notice ::AAB built successfully, but upload failed. See logs above."
           else
             echo "::notice ::Play Store upload SUCCESS for flavor: $FLAVOR"
           fi
