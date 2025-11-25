@@ -182,6 +182,11 @@ jobs:
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
 
+      # --- Flutter SDK Setup ---
+      - name: Flutter Pub Get
+        working-directory: .
+        run: flutter pub get
+
       ## Fastlane Bundler Caching (Provider)
 
       # 1. Create a minimal Gemfile with the public source
@@ -234,7 +239,7 @@ jobs:
         working-directory: .
     # Strategy to run a separate job for each flavor (parallelism limited to 2)
     strategy:
-      fail-fast: false
+      fail-fast: true
       max-parallel: 2
       matrix:
         flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
@@ -268,10 +273,6 @@ jobs:
           cache: true
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
-
-      - name: Run Flutter Pub Get
-        run: flutter pub get
-
 
       # Restore config.json
       - name: Restore config.json
@@ -315,6 +316,12 @@ jobs:
           ruby-version: 3.2
           # Restores installed gems based on the restored Gemfile.lock hash.
           bundler-cache: true
+
+      # --- Gradle Cache ---
+      - name: Restore Gradle Cache
+        uses: gradle/gradle-build-action@v2
+        with:
+          cache-read-only: false
 
       # --- Build Step ---
       - name: Build AppBundle (AAB)
