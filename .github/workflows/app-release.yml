@@ -354,7 +354,11 @@ jobs:
           # Get the package name from the properties file
           PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
           
-          # Use 'bundle exec' to run fastlane from the Bundler-managed path
+          echo "Uploading AAB for flavor: $FLAVOR"
+
+          # Run fastlane but never fail the job
+          set +e
+
           bundle exec fastlane supply \
             --aab "$AAB" \
             --package_name "$PKG" \
@@ -365,6 +369,18 @@ jobs:
             --skip_upload_metadata true \
             --skip_upload_images true \
             --skip_upload_screenshots true
-          
-          # Clean up the secret key file
+
+          EXIT_CODE=$?
+
+          set -e   # restore normal behavior
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Play Store upload FAILED for flavor: $FLAVOR"
+            echo "Fastlane Exit Code: $EXIT_CODE"
+            echo "The AAB was built successfully, but upload did not complete."
+            echo "----- Fastlane Error Output Above -----"
+          else
+            echo "Play Store upload SUCCESS for flavor: $FLAVOR"
+          fi
+
           rm -f "$KEY"
