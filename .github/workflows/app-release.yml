@@ -375,12 +375,12 @@ jobs:
           set -e   # restore normal behavior
 
           if [ $EXIT_CODE -ne 0 ]; then
-            echo "Play Store upload FAILED for flavor: $FLAVOR"
-            echo "Fastlane Exit Code: $EXIT_CODE"
-            echo "The AAB was built successfully, but upload did not complete."
-            echo "----- Fastlane Error Output Above -----"
+            # Highlighted message in GitHub Actions (without failing)
+            echo "::error ::Play Store upload FAILED for flavor '${FLAVOR}'."
+            echo "::error ::Reason: $(echo "$FASTLANE_OUTPUT" | head -n 5)"
+            echo "::notice ::AAB built successfully, but upload failed. See logs above."
           else
-            echo "Play Store upload SUCCESS for flavor: $FLAVOR"
+            echo "::notice ::Play Store upload SUCCESS for flavor: $FLAVOR"
           fi
 
           rm -f "$KEY"
