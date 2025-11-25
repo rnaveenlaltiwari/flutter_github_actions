@@ -328,19 +328,20 @@ jobs:
           working-directory: ${{ env.WORKING_DIRECTORY }}
 
       # --- Gradle Cache ---
-      - name: Setup Gradle Cache
-        uses: burrunan/gradle-cache-action@v3
-        with:
+#      - name: Setup Gradle Cache
+#        uses: burrunan/gradle-cache-action@v3
+#        with:
           # This key is sensitive to changes in dependencies or build logic
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/pubspec.lock', '**/build.gradle', '**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+#          key: ${{ runner.os }}-gradle-${{ hashFiles('**/pubspec.lock', '**/build.gradle', '**/*.gradle') }}
+#          restore-keys: |
+#            ${{ runner.os }}-gradle-
 
-      #      - name: Restore Gradle Cache
-      #        uses: gradle/gradle-build-action@v2
-      #        with:
-      #          cache-read-only: false
-      #          gradle-home-cache-key: gradle-${{ runner.os }}
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: current
+          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+          cache-read-only: false
 
       # --- Build Step ---
       - name: Build AppBundle (AAB)
