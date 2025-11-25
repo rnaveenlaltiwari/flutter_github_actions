@@ -233,8 +233,8 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            Gemfile
-            Gemfile.lock
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
           # Key is simple since the files content is static for a given ruby version
           key: ${{ runner.os }}-bundler-files-3.2
 
