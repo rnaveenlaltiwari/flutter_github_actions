@@ -321,11 +321,13 @@ jobs:
           bundler-cache: true
 
       # --- Gradle Cache ---
-      - name: Restore Gradle Cache
-        uses: gradle/gradle-build-action@v2
+      - name: Setup Gradle Cache
+        uses: burrunan/gradle-cache-action@v3
         with:
-          cache-read-only: false
-          gradle-home-cache-key: gradle-${{ runner.os }}
+          # This key is sensitive to changes in dependencies or build logic
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/pubspec.lock', '**/build.gradle', '**/*.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       # --- Build Step ---
       - name: Build AppBundle (AAB)
