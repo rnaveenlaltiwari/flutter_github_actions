@@ -153,6 +153,9 @@ jobs:
     needs: extract-flavors # Must run after flavor list is determined
     runs-on: macos-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       # --- Android SDK Setup ---
       - name: Setup Android SDK (Cache & Install)
         uses: amyu/setup-android@v5
