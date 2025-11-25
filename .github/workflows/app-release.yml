@@ -41,7 +41,7 @@ env:
   ANDROID_PLATFORM_VER_3: "31"
   NDK_VER: "29.0.14033849"
   CMD_LINE_TOOL_VERSION: 10406996
-  WORKING_DIRECTORY: ./strive_health
+  WORKING_DIRECTORY: .
 
 # ------------------------------------------------------------------------------
 # 3. Jobs
