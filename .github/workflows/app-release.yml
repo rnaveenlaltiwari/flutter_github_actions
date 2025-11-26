@@ -42,6 +42,7 @@ env:
   NDK_VER: "29.0.14033849"
   CMD_LINE_TOOL_VERSION: 10406996
   WORKING_DIRECTORY: .
+  GRADLE_VERSION: 8.9
 
 # ------------------------------------------------------------------------------
 # 3. Jobs
@@ -106,8 +107,7 @@ jobs:
           # Set the output variable for the next job's matrix
           echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
 
-      # ---- Generate signing.properties for all apps ----
-      - name: Generate JKS files and sent to 3rd JOB as base64
+      - name: Keystores
         id: keystores
         run: |
           # iterate app keys
@@ -136,7 +136,7 @@ jobs:
 
           for APP in $APPS; do
             # use --arg so keys with dashes or special chars work
-            STORE_FILE=../keystore/${APP}.jks
+            STORE_FILE=android/keystore/${APP}.jks
             STORE_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.store_password' config.json)
             KEY_ALIAS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_alias' config.json)
             KEY_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_password' config.json)
@@ -382,7 +382,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 8.9
+          gradle-version: ${{ env.GRADLE_VERSION }}
           build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
           cache-read-only: false
 
