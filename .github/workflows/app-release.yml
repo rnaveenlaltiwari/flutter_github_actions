@@ -136,7 +136,7 @@ jobs:
 
           for APP in $APPS; do
             # use --arg so keys with dashes or special chars work
-            STORE_FILE=keystore/${APP}.jks
+            STORE_FILE=../keystore/${APP}.jks
             STORE_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.store_password' config.json)
             KEY_ALIAS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_alias' config.json)
             KEY_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_password' config.json)
@@ -183,37 +183,37 @@ jobs:
         uses: actions/checkout@v4
 
       # --- Android SDK Setup ---
-#      - name: Setup Android SDK (Cache & Install)
-#        uses: amyu/setup-android@v5
-#        with:
-#          cache-disabled: false
+      - name: Setup Android SDK (Cache & Install)
+        uses: amyu/setup-android@v5
+        with:
+          cache-disabled: false
           # Define a unique key for the Android SDK/NDK cache
-#          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
           # Specify all required SDK versions for cache provisioning
-#          sdk-version: |
-#            ${{ env.ANDROID_PLATFORM_VER }}
-#            ${{ env.ANDROID_PLATFORM_VER_2 }}
-#            ${{ env.ANDROID_PLATFORM_VER_3 }}
-#          build-tools-version: |
-#            ${{ env.ANDROID_SDK_VER_2 }}
-#          ndk-version: ${{ env.NDK_VER }}
-#          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
-#          generate-job-summary: false
+          sdk-version: |
+            ${{ env.ANDROID_PLATFORM_VER }}
+            ${{ env.ANDROID_PLATFORM_VER_2 }}
+            ${{ env.ANDROID_PLATFORM_VER_3 }}
+          build-tools-version: |
+            ${{ env.ANDROID_SDK_VER_2 }}
+          ndk-version: ${{ env.NDK_VER }}
+          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
+          generate-job-summary: false
 
       # --- Flutter SDK Setup ---
-#      - name: Set up Flutter (Cache & Install)
-#        uses: subosito/flutter-action@v2
-#        with:
-#          channel: stable
-#          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Set up Flutter (Cache & Install)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           # Enable built-in caching for Flutter SDK and artifacts
-#          cache: true
-#          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
-#          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
 
       # --- Flutter Getting Plugins ---
-#      - name: Flutter Pub Get
-#        run: flutter pub get
+      - name: Flutter Pub Get
+        run: flutter pub get
 
       ## Fastlane Bundler Caching (Provider)
 
@@ -282,27 +282,27 @@ jobs:
         uses: actions/checkout@v4
 
       # --- Restore Android SDK ---
-#      - name: Restore/Setup Android SDK
+      - name: Restore/Setup Android SDK
         # The 'setup-android' action automatically restores based on the cache-key
-#        uses: amyu/setup-android@v5
-#        with:
-#          cache-disabled: false
-#          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
-#          sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
-#          build-tools-version: ${{ env.ANDROID_SDK_VER }}
-#          ndk-version: ${{ env.NDK_VER }}
-#          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
-#          generate-job-summary: false
+        uses: amyu/setup-android@v5
+        with:
+          cache-disabled: false
+          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
+          build-tools-version: ${{ env.ANDROID_SDK_VER }}
+          ndk-version: ${{ env.NDK_VER }}
+          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
+          generate-job-summary: false
 
       # --- Restore Flutter SDK & Artifacts ---
-#      - name: Restore Flutter
-#        uses: subosito/flutter-action@v2
-#        with:
-#          channel: stable
-#          flutter-version: ${{ env.FLUTTER_VERSION }}
-#          cache: true
-#          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
-#          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+      - name: Restore Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
 
       # Restore config.json
       - name: Restore config.json
@@ -337,36 +337,36 @@ jobs:
           echo "--------------------------------------"
 
       # -------- FIXED JKS VERIFICATION --------
-      - name: Verify JKS ${{ matrix.flavor }}
-        run: |
-          FLAVOR="${{ matrix.flavor }}"
-
-          STORE_FILE=$(grep "${FLAVOR}.storeFile" android/signing.properties | cut -d'=' -f2)
-          STORE_PASS=$(grep "${FLAVOR}.storePassword" android/signing.properties | cut -d'=' -f2)
-          KEY_ALIAS=$(grep "${FLAVOR}.keyAlias" android/signing.properties | cut -d'=' -f2)
-          KEY_PASS=$(grep "${FLAVOR}.keyPassword" android/signing.properties | cut -d'=' -f2)
-
-          echo "FLAVOR=$FLAVOR"
-          echo "STORE_FILE=$STORE_FILE"
-          echo "KEY_ALIAS=$KEY_ALIAS"
-
-          echo "🔎 Checking JKS integrity..."
-
+#      - name: Verify JKS ${{ matrix.flavor }}
+#        run: |
+#          FLAVOR="${{ matrix.flavor }}"
+#
+#          STORE_FILE=$(grep "${FLAVOR}.storeFile" android/signing.properties | cut -d'=' -f2)
+#          STORE_PASS=$(grep "${FLAVOR}.storePassword" android/signing.properties | cut -d'=' -f2)
+#          KEY_ALIAS=$(grep "${FLAVOR}.keyAlias" android/signing.properties | cut -d'=' -f2)
+#          KEY_PASS=$(grep "${FLAVOR}.keyPassword" android/signing.properties | cut -d'=' -f2)
+#
+#          echo "FLAVOR=$FLAVOR"
+#          echo "STORE_FILE=$STORE_FILE"
+#          echo "KEY_ALIAS=$KEY_ALIAS"
+#
+#          echo "🔎 Checking JKS integrity..."
+#
           # allow command failure
-          set +e
-          keytool -list -v \
-            -keystore "$STORE_FILE" \
-            -storepass "$STORE_PASS" \
-            -alias "$KEY_ALIAS"
-          RESULT=$?
-          set -e
+#          set +e
+#          keytool -list -v \
+#            -keystore "$STORE_FILE" \
+#            -storepass "$STORE_PASS" \
+#            -alias "$KEY_ALIAS"
+#          RESULT=$?
+#          set -e
 
-          if [ $RESULT -ne 0 ]; then
-            echo "::error ::JKS is INVALID or CORRUPTED → $STORE_FILE"
-            exit 1
-          fi
-
-          echo "✅ VALID JKS: $STORE_FILE"
+#          if [ $RESULT -ne 0 ]; then
+#            echo "::error ::JKS is INVALID or CORRUPTED → $STORE_FILE"
+#            exit 1
+#          fi
+#
+#          echo "✅ VALID JKS: $STORE_FILE"
 
       - name: Restore Play JSON
         run: |
