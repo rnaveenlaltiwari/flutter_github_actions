@@ -117,7 +117,7 @@ jobs:
           keystore_json="{"
 
           for APP in $APPS; do
-            KEY==$(jq -r --arg app "$APP" '.apps[$app].android.keystore.file_path' config.json)
+            KEY=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.file_path' config.json)
             keystore_json+="\"$APP\":\"$KEY\","
           done
 
