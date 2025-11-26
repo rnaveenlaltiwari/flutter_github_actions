@@ -142,7 +142,7 @@ jobs:
             KEY_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_password' config.json)
 
             # append without extra leading spaces
-            OUTPUT+=$'\n# ---------- '"$APP"' ----------\n'
+            OUTPUT+=$'\n'"# ---------- ${APP} ----------"$'\n'
             OUTPUT+="${APP}.storeFile=${STORE_FILE}"$'\n'
             OUTPUT+="${APP}.storePassword=${STORE_PASS}"$'\n'
             OUTPUT+="${APP}.keyAlias=${KEY_ALIAS}"$'\n'
