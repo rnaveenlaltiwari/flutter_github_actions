@@ -143,10 +143,10 @@ jobs:
 
             # append without extra leading spaces
             OUTPUT+=$'\n# ---------- '"$APP"' ----------\n'
-            OUTPUT+="${APP}.storeFile=${STORE_FILE}\n"
-            OUTPUT+="${APP}.storePassword=${STORE_PASS}\n"
-            OUTPUT+="${APP}.keyAlias=${KEY_ALIAS}\n"
-            OUTPUT+="${APP}.keyPassword=${KEY_PASS}\n"
+            OUTPUT+="${APP}.storeFile=${STORE_FILE}"$'\n'
+            OUTPUT+="${APP}.storePassword=${STORE_PASS}"$'\n'
+            OUTPUT+="${APP}.keyAlias=${KEY_ALIAS}"$'\n'
+            OUTPUT+="${APP}.keyPassword=${KEY_PASS}"$'\n'
           done
 
           # Trim leading newline (optional)
