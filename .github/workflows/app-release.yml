@@ -61,6 +61,7 @@ jobs:
       signing_b64: ${{ steps.signing.outputs.signing_b64 }}
       play_json_b64: ${{ steps.play-json.outputs.play_json_b64 }}
       env_b64: ${{ steps.env-file.outputs.env_b64 }}
+      keystore_json: ${{ steps.keystores.outputs.keystore_json }}
 
     steps:
       - name: Checkout code
@@ -106,6 +107,26 @@ jobs:
           echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
 
       # ---- Generate signing.properties for all apps ----
+      - name: Generate JKS files and sent to 3rd JOB as base64
+        id: keystores
+        run: |
+          # iterate app keys
+          APPS=$(jq -r '.apps | keys[]' config.json)
+          
+          # create a JSON object for keystores
+          keystore_json="{"
+
+          for APP in $APPS; do
+            KEY==$(jq -r --arg app "$APP" '.apps[$app].android.keystore.file_path' config.json)
+            keystore_json+="\"$APP\":\"$KEY\","
+          done
+
+          # remove last comma & close JSON
+          keystore_json="${keystore_json%,}}"
+
+          echo "keystore_json=$keystore_json" >> $GITHUB_OUTPUT
+
+      # ---- Generate signing.properties for all apps ----
       - name: Generate signing.properties
         id: signing
         run: |
@@ -115,7 +136,7 @@ jobs:
 
           for APP in $APPS; do
             # use --arg so keys with dashes or special chars work
-            STORE_FILE=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.file_path' config.json)
+            STORE_FILE=../keystore/${APP}.jks
             STORE_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.store_password' config.json)
             KEY_ALIAS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_alias' config.json)
             KEY_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_password' config.json)
@@ -289,9 +310,25 @@ jobs:
           echo "${{ needs.extract-flavors.outputs.config_b64 }}" | base64 --decode > config.json
 
       # Restore signing.properties
-      - name: Restore signing.properties
+      - name:  ${{ matrix.flavor }} Keystore
         run: |
           mkdir -p android/keystore
+          
+          FLAVOR="${{ matrix.flavor }}"
+          KEYSTORE_JSON='${{ needs.extract-flavors.outputs.keystore_json }}'
+
+          # Extract base64 for this flavor only
+          B64=$(echo "$KEYSTORE_JSON" | jq -r ".[\"$FLAVOR\"]")
+
+          # Create JKS
+          echo "$B64" | base64 --decode > "android/keystore/${FLAVOR}.jks"
+
+          echo "Generated android/keystore/${FLAVOR}.jks"
+          ls -l android/keystore
+
+      # Restore signing.properties
+      - name: Restore signing.properties
+        run: |
           echo "${{ needs.extract-flavors.outputs.signing_b64 }}" | base64 --decode > android/signing.properties
 
       - name: Restore Play JSON
