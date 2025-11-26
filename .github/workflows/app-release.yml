@@ -429,8 +429,6 @@ jobs:
           set -e  # restore normal behavior
 
           if [ $EXIT_CODE -ne 0 ]; then
-            echo "::error ::Play Store upload FAILED for flavor '${FLAVOR}'"
-            echo "::error ::Fastlane output:"
             echo "::error ::${FASTLANE_OUTPUT//$'\n'/'%0A'}"
           else
             echo "::notice ::Play Store upload SUCCESS for flavor: $FLAVOR"
