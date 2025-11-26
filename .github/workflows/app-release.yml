@@ -136,7 +136,7 @@ jobs:
 
           for APP in $APPS; do
             # use --arg so keys with dashes or special chars work
-            STORE_FILE=../keystore/${APP}.jks
+            STORE_FILE=keystore/${APP}.jks
             STORE_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.store_password' config.json)
             KEY_ALIAS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_alias' config.json)
             KEY_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_password' config.json)
