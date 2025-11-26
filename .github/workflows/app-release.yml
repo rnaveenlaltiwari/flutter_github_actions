@@ -264,7 +264,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
-          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+#          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
           cache-read-only: false
 
   # Job 3: Build, Sign, and Distribute the Android App for each flavor.
@@ -379,7 +379,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
-          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+#          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
           cache-read-only: false
 
       # --- Build Step ---
