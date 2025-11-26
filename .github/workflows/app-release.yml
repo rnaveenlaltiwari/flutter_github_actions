@@ -259,6 +259,16 @@ jobs:
           # Key is simple since the files content is static for a given ruby version
           key: ${{ runner.os }}-bundler-files-3.2
 
+      # 5. Setup Gradle and make cache resilient
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+          cache-read-only: false
+          # 👇 FIX: Ensures the build continues if the cache service fails.
+          cache-write-only-on-failure: true
+
   # Job 3: Build, Sign, and Distribute the Android App for each flavor.
   build:
     name: Build & Deploy ${{ matrix.flavor }}
@@ -367,20 +377,14 @@ jobs:
           working-directory: ${{ env.WORKING_DIRECTORY }}
 
       # --- Gradle Cache ---
-#      - name: Setup Gradle Cache
-#        uses: burrunan/gradle-cache-action@v3
-#        with:
-          # This key is sensitive to changes in dependencies or build logic
-#          key: ${{ runner.os }}-gradle-${{ hashFiles('**/pubspec.lock', '**/build.gradle', '**/*.gradle') }}
-#          restore-keys: |
-#            ${{ runner.os }}-gradle-
-
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
           build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
           cache-read-only: false
+          # 👇 FIX: Ensures the build continues if the cache service fails.
+          cache-write-only-on-failure: true
 
       # --- Build Step ---
       - name: Build AppBundle (AAB)
