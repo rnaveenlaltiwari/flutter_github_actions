@@ -330,6 +330,11 @@ jobs:
       - name: Restore signing.properties
         run: |
           echo "${{ needs.extract-flavors.outputs.signing_b64 }}" | base64 --decode > android/signing.properties
+          ls -l android/
+
+          echo "----- signing.properties content -----"
+          cat android/signing.properties
+          echo "--------------------------------------"
 
       - name: Restore Play JSON
         run: |
