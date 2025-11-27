@@ -5,24 +5,34 @@ on:
     inputs:
       FLUTTER_VERSION:
         required: true
+        type: string
       ANDROID_SDK_VER:
         required: true
+        type: string
       ANDROID_PLATFORM_VER:
         required: true
+        type: string
       ANDROID_SDK_VER_2:
         required: true
+        type: string
       ANDROID_PLATFORM_VER_2:
         required: true
+        type: string
       ANDROID_PLATFORM_VER_3:
         required: true
+        type: string
       NDK_VER:
         required: true
+        type: string
       CMD_LINE_TOOL_VERSION:
         required: true
+        type: string
       WORKING_DIRECTORY:
         required: true
+        type: string
       GRADLE_VERSION:
         required: true
+        type: string
 
 jobs:
   setup:
