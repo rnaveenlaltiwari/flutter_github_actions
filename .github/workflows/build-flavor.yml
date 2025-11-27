@@ -15,15 +15,15 @@ on:
       env_b64:
         type: string
         required: true
-      play_json_b64:
-        type: string
-        required: true
       keystore_json:
         type: string
         required: true
 #      secrets:
 #        ENCRYPTION_KEY:
 #          required: true
+    outputs:
+      flavor:
+        value: ${{ inputs.flavor }}
 
 env:
   FLUTTER_VERSION: 3.24.5
@@ -101,39 +101,12 @@ jobs:
           echo "${{ inputs.signing_b64 }}" | base64 --decode > android/signing.properties
           ls -l android/
 
-      - name: Restore Play JSON
-        run: |
-          echo "${{ inputs.play_json_b64 }}" | base64 --decode > google-play-key.json
-
       - name: Restore .env file
         run: |
           echo "${{ inputs.env_b64 }}" | base64 --decode > .env
 
       - name: Generate env.g.dart (Build Runner)
         run: dart run build_runner build --delete-conflicting-outputs
-
-      ## Fastlane Bundler Caching (Restorer)
-
-      # 1. Restore Gemfile and Gemfile.lock
-      - name: Restore Bundler Files Cache
-        id: restore_bundler_files
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ${{ env.WORKING_DIRECTORY }}/Gemfile
-            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
-          key: ${{ runner.os }}-bundler-files-3.2
-          restore-keys: |
-            ${{ runner.os }}-bundler-files-
-
-      # 2. Setup Ruby and restore gems using Bundler cache
-      - name: Setup Ruby and Restore Gems
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.2
-          # Restores installed gems based on the restored Gemfile.lock hash.
-          bundler-cache: true
-          working-directory: ${{ env.WORKING_DIRECTORY }}
 
       # --- Gradle Cache ---
       - name: Setup Gradle

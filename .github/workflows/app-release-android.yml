@@ -60,7 +60,6 @@ jobs:
       config_b64: ${{ needs.prepare.outputs.config_b64 }}
       signing_b64: ${{ needs.prepare.outputs.signing_b64 }}
       env_b64: ${{ needs.prepare.outputs.env_b64 }}
-      play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
       keystore_json: ${{ needs.prepare.outputs.keystore_json }}
 #    secrets: inherit
 
@@ -68,8 +67,9 @@ jobs:
   # JOB 4: Upload to Google Play (uses Fastlane)
   # ----------------------------------------------------------
   upload:
-    needs: build
+    needs: [prepare, build]
     uses: ./.github/workflows/upload-play.yml
     with:
       flavor: ${{ needs.build.outputs.flavor }}
+      play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
 #    secrets: inherit

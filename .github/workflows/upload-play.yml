@@ -6,6 +6,9 @@ on:
       flavor:
         type: string
         required: true
+      play_json_b64:
+        type: string
+        required: true
 #      secrets:
 #        ENCRYPTION_KEY:
 #          required: true
@@ -20,7 +23,29 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Restore Play JSON
-        run: echo "${{ secrets.play_json_b64 }}" | base64 --decode > google-play-key.json
+        run: |
+          echo "${{ inputs.play_json_b64 }}" | base64 --decode > google-play-key.json
+
+      # Restore Gemfile and Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # Setup Ruby and restore gems using Bundler cache
+      - name: Setup Ruby and Restore Gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          # Restores installed gems based on the restored Gemfile.lock hash.
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: Find AAB path
         id: paths
