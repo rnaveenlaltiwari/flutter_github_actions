@@ -1,6 +1,6 @@
 name: Reusable - Setup Android + Flutter + Ruby + Caches
 
-on:
+#on:
 #  workflow_call:
 #    secrets:
 #      ENCRYPTION_KEY:
@@ -9,7 +9,6 @@ on:
 jobs:
   setup:
     name: Setup Environment & Caches
-    needs: extract-flavors # Must run after flavor list is determined
     runs-on: macos-latest
     defaults:
       run:
