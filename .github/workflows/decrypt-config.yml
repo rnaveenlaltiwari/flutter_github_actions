@@ -6,9 +6,6 @@ on:
       input-flavor:
         required: true
         type: string
-      WORKING_DIRECTORY:
-        required: true
-        type: string
     secrets:
       ENCRYPTION_KEY:
         required: true
@@ -27,13 +24,16 @@ on:
       keystore_json:
         value: ${{ jobs.prepare.outputs.keystore_json }}
 
+env:
+  WORKING_DIRECTORY: .
+
 jobs:
   prepare:
     name: Extract Flavors + Prepare Base64 Data
     runs-on: macos-latest
     defaults:
       run:
-        working-directory: ${{ inputs.WORKING_DIRECTORY}}
+        working-directory: ${{ env.WORKING_DIRECTORY}}
     outputs:
       flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
       config_b64: ${{ steps.config-file.outputs.config_b64 }}
