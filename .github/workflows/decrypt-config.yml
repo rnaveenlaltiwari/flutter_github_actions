@@ -29,7 +29,7 @@ env:
 
 jobs:
   prepare:
-    name: Extract Flavors + Prepare Base64 Data
+    name: Build Prerequisite
     runs-on: macos-latest
     defaults:
       run:

@@ -18,7 +18,7 @@ env:
 
 jobs:
   upload:
-    name: Upload ${{ inputs.flavor }} to Play Store
+    name: ${{ inputs.flavor }} to Play Store
     runs-on: macos-latest
 
     steps:

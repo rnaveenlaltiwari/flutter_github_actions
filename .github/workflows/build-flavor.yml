@@ -18,6 +18,9 @@ on:
       keystore_json:
         type: string
         required: true
+      play_json_b64:
+        type: string
+        required: true
 #      secrets:
 #        ENCRYPTION_KEY:
 #          required: true
@@ -41,7 +44,7 @@ env:
 
 jobs:
   build:
-    name: Build ${{ inputs.flavor }}
+    name: ${{ inputs.flavor }} to Play Store
     runs-on: macos-latest
     defaults:
       run:
@@ -130,3 +133,64 @@ jobs:
         with:
           name: ${{ inputs.flavor }}-build
           path: build/app/outputs/bundle/${{ inputs.flavor }}Release/*.aab
+
+      - name: Restore Play JSON
+        run: |
+          echo "${{ inputs.play_json_b64 }}" | base64 --decode > google-play-key.json
+
+      # Restore Gemfile and Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # Setup Ruby and restore gems using Bundler cache
+      - name: Setup Ruby and Restore Gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          # Restores installed gems based on the restored Gemfile.lock hash.
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY }}
+
+      - name: Find AAB path
+        id: paths
+        run: |
+          echo "aab=build/app/outputs/bundle/${{ inputs.flavor }}Release/app-${{ inputs.flavor }}-release.aab" >> $GITHUB_OUTPUT
+
+      - name: Upload to Play Distribution with Fastlane
+        run: |
+          FLAVOR=${{ inputs.flavor }}
+          AAB="${{ steps.paths.outputs.aab }}"
+          KEY="google-play-key.json"
+
+          PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
+
+          echo "Uploading AAB for flavor: $FLAVOR"
+
+          set +e
+          FASTLANE_OUTPUT=$(bundle exec fastlane supply \
+            --aab "$AAB" \
+            --package_name "$PKG" \
+            --track production \
+            --json_key "$KEY" \
+            --metadata_path "./release-notes/metadata/android" \
+            --rollout 1.0 \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true 2>&1 | tee /dev/tty)
+
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error ::${FASTLANE_OUTPUT//$'\n'/'%0A'}"
+          else
+            echo "::notice ::Play Store upload SUCCESS for flavor: $FLAVOR"
+          fi
