@@ -1,0 +1,57 @@
+name: Reusable - Upload AAB to Google Play
+
+on:
+  workflow_call:
+    inputs:
+      flavor:
+        type: string
+        required: true
+    secrets: inherit
+
+jobs:
+  upload:
+    name: Upload ${{ inputs.flavor }} to Play Store
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore Play JSON
+        run: echo "${{ secrets.play_json_b64 }}" | base64 --decode > google-play-key.json
+
+      - name: Find AAB path
+        id: paths
+        run: |
+          echo "aab=build/app/outputs/bundle/${{ inputs.flavor }}Release/app-${{ inputs.flavor }}-release.aab" >> $GITHUB_OUTPUT
+
+      - name: Upload to Play Distribution with Fastlane
+        run: |
+          FLAVOR=${{ inputs.flavor }}
+          AAB="${{ steps.paths.outputs.aab }}"
+          KEY="google-play-key.json"
+
+          PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
+
+          echo "Uploading AAB for flavor: $FLAVOR"
+
+          set +e
+          FASTLANE_OUTPUT=$(bundle exec fastlane supply \
+            --aab "$AAB" \
+            --package_name "$PKG" \
+            --track production \
+            --json_key "$KEY" \
+            --metadata_path "./release-notes/metadata/android" \
+            --rollout 1.0 \
+            --skip_upload_metadata true \
+            --skip_upload_images true \
+            --skip_upload_screenshots true 2>&1 | tee /dev/tty)
+
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error ::${FASTLANE_OUTPUT//$'\n'/'%0A'}"
+          else
+            echo "::notice ::Play Store upload SUCCESS for flavor: $FLAVOR"
+          fi

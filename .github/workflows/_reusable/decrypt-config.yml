@@ -1,0 +1,135 @@
+name: Reusable - Decrypt and Prepare Config
+
+on:
+  workflow_call:
+    inputs:
+      input-flavor:
+        required: true
+        type: string
+    secrets:
+      ENCRYPTION_KEY:
+        required: true
+    outputs:
+      flavors-json:
+        description: "JSON array of flavors"
+        value: ${{ jobs.prepare.outputs.flavors-json }}
+      config_b64:
+        value: ${{ jobs.prepare.outputs.config_b64 }}
+      signing_b64:
+        value: ${{ jobs.prepare.outputs.signing_b64 }}
+      play_json_b64:
+        value: ${{ jobs.prepare.outputs.play_json_b64 }}
+      env_b64:
+        value: ${{ jobs.prepare.outputs.env_b64 }}
+      keystore_json:
+        value: ${{ jobs.prepare.outputs.keystore_json }}
+
+jobs:
+  prepare:
+    name: Extract Flavors + Prepare Base64 Data
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+    outputs:
+      flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
+      config_b64: ${{ steps.config-file.outputs.config_b64 }}
+      signing_b64: ${{ steps.signing.outputs.signing_b64 }}
+      play_json_b64: ${{ steps.play-json.outputs.play_json_b64 }}
+      env_b64: ${{ steps.env-file.outputs.env_b64 }}
+      keystore_json: ${{ steps.keystores.outputs.keystore_json }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+#      - name: Install jq (JSON processor)
+#        run: |
+#          if ! command -v jq &> /dev/null; then
+#            brew install jq
+#          else
+#            echo "jq already installed"
+#          fi
+
+      # ---- Decrypt config.json using AES-256-CBC ----
+      - name: Decrypt config.json
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt \
+            -in config.json.enc -out config.json \
+            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      # ---- Base64 encode config ----
+      - name: Load config.json as Base64
+        id: config-file
+        run: |
+          CONFIG_B64=$(base64 < config.json)
+          echo "config_b64=$CONFIG_B64" >> $GITHUB_OUTPUT
+
+      # ---- Flavor Extraction ----
+      - name: Get and Filter flavors from config.json
+        id: get-flavors
+        run: |
+          INPUT_FLAVOR="${{ inputs.input-flavor }}"
+          
+          if [ "$INPUT_FLAVOR" == "all" ]; then
+            FLAVORS_TO_BUILD=$(jq -c '.apps | keys' config.json)
+          else
+            FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
+          fi
+          
+          echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
+
+      # ---- Create keystore JSON (per app) ----
+      - name: Keystores
+        id: keystores
+        run: |
+          APPS=$(jq -r '.apps | keys[]' config.json)
+          keystore_json="{"
+          for APP in $APPS; do
+            KEY=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.file_base64' config.json)
+            keystore_json+="\"$APP\":\"$KEY\","
+          done
+          keystore_json="${keystore_json%,}}"
+          echo "keystore_json=$keystore_json" >> $GITHUB_OUTPUT
+
+      # ---- Generate signing.properties (Base64) ----
+      - name: Generate signing.properties
+        id: signing
+        run: |
+          OUTPUT=""
+          APPS=$(jq -r '.apps | keys[]' config.json)
+
+          for APP in $APPS; do
+            STORE_FILE=../keystore/${APP}.jks
+            STORE_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.store_password' config.json)
+            KEY_ALIAS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_alias' config.json)
+            KEY_PASS=$(jq -r --arg app "$APP" '.apps[$app].android.keystore.key_password' config.json)
+
+            OUTPUT+=$'\n'"# ---------- ${APP} ----------"$'\n'
+            OUTPUT+="${APP}.storeFile=${STORE_FILE}"$'\n'
+            OUTPUT+="${APP}.storePassword=${STORE_PASS}"$'\n'
+            OUTPUT+="${APP}.keyAlias=${KEY_ALIAS}"$'\n'
+            OUTPUT+="${APP}.keyPassword=${KEY_PASS}"$'\n'
+          done
+
+          OUTPUT="${OUTPUT#\\n}"
+          SIGNING_B64=$(printf "%s" "$OUTPUT" | base64)
+          echo "signing_b64=$SIGNING_B64" >> $GITHUB_OUTPUT
+
+      # ---- Play Store service account JSON ----
+      - name: Extract Play JSON
+        id: play-json
+        run: |
+          PLAY_JSON=$(jq -c ".common.play.serviceAccountJson" config.json)
+          PLAY_JSON_B64=$(printf "%s" "$PLAY_JSON" | base64)
+          echo "play_json_b64=$PLAY_JSON_B64" >> $GITHUB_OUTPUT
+
+      # ---- Generate .env ----
+      - name: Generate .env content
+        id: env-file
+        run: |
+          ENV_CONTENT=$(jq -r '.common.env | to_entries[] | "\(.key)=\(.value)"' config.json)
+          ENV_B64=$(printf "%s" "$ENV_CONTENT" | base64)
+          echo "env_b64=$ENV_B64" >> $GITHUB_OUTPUT

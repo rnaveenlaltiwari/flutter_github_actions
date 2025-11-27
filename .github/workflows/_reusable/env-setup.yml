@@ -1,0 +1,102 @@
+name: Reusable - Setup Android + Flutter + Ruby + Caches
+
+on:
+  workflow_call:
+    secrets: inherit
+
+jobs:
+  setup:
+    name: Setup Environment & Caches
+    needs: extract-flavors # Must run after flavor list is determined
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Android SDK Setup ---
+      - name: Setup Android SDK (Cache & Install)
+        uses: amyu/setup-android@v5
+        with:
+          cache-disabled: false
+          # Define a unique key for the Android SDK/NDK cache
+          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          # Specify all required SDK versions for cache provisioning
+          sdk-version: |
+            ${{ env.ANDROID_PLATFORM_VER }}
+            ${{ env.ANDROID_PLATFORM_VER_2 }}
+            ${{ env.ANDROID_PLATFORM_VER_3 }}
+          build-tools-version: |
+            ${{ env.ANDROID_SDK_VER_2 }}
+          ndk-version: ${{ env.NDK_VER }}
+          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
+          generate-job-summary: false
+
+      # --- Flutter SDK Setup ---
+      - name: Set up Flutter (Cache & Install)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # Enable built-in caching for Flutter SDK and artifacts
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      # --- Flutter Getting Plugins ---
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      ## Fastlane Bundler Caching (Provider)
+
+      # 1. Create a minimal Gemfile with the public source
+      - name: Create Gemfile for Fastlane
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+        run: |
+          echo 'source "https://rubygems.org"' > Gemfile
+          echo "gem 'fastlane'" >> Gemfile
+
+      # 2. 🔍 CHECK/RESTORE Cache for Gemfile/Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          # Use restore-keys in case the primary key changes
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # 3. Setup Ruby and use Bundler to install/cache gems
+      - name: Setup Ruby, Restore/Install Gems (Bundler)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          # 'bundler-cache: true' manages:
+          # 1. Restoring the gem cache (keyed by Gemfile.lock hash).
+          # 2. Running 'bundle install' and saving the new cache if a miss occurs.
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY}}
+
+      # 4. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
+      - name: Save Bundler Files Cache
+        if: steps.restore_bundler_files.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          # Key is simple since the files content is static for a given ruby version
+          key: ${{ runner.os }}-bundler-files-3.2
+
+      # 5. Setup Gradle and make cache resilient
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          #          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+          cache-read-only: false

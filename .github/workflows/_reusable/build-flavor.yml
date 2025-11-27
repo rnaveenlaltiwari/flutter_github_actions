@@ -1,0 +1,143 @@
+name: Reusable - Build AAB for a Flavor
+
+on:
+  workflow_call:
+    inputs:
+      flavor:
+        type: string
+        required: true
+      config_b64:
+        type: string
+        required: true
+      signing_b64:
+        type: string
+        required: true
+      env_b64:
+        type: string
+        required: true
+      play_json_b64:
+        type: string
+        required: true
+      keystore_json:
+        type: string
+        required: true
+    secrets: inherit
+
+jobs:
+  build:
+    name: Build ${{ inputs.flavor }}
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Restore Android SDK ---
+      - name: Restore/Setup Android SDK
+        # The 'setup-android' action automatically restores based on the cache-key
+        uses: amyu/setup-android@v5
+        with:
+          cache-disabled: false
+          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          sdk-version: ${{ env.ANDROID_PLATFORM_VER }}
+          build-tools-version: ${{ env.ANDROID_SDK_VER }}
+          ndk-version: ${{ env.NDK_VER }}
+          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
+          generate-job-summary: false
+
+      # --- Restore Flutter SDK & Artifacts ---
+      - name: Restore Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      # Restore config.json
+      - name: Restore config.json
+        run: |
+          echo "${{ inputs.config_b64 }}" | base64 --decode > config.json
+
+      # Restore Keystore
+      - name: Restore Keystore ${{ inputs.flavor }}
+        run: |
+          mkdir -p android/keystore
+          
+          FLAVOR="${{ inputs.flavor }}"
+          KEYSTORE_JSON='${{ inputs.keystore_json }}'
+
+          # Extract base64 for this flavor only
+          B64=$(echo "$KEYSTORE_JSON" | jq -r ".[\"$FLAVOR\"]")
+
+          # Create JKS
+          echo "$B64" | base64 --decode > "android/keystore/${FLAVOR}.jks"
+
+          echo "Generated android/keystore/${FLAVOR}.jks"
+          ls -l android/keystore
+
+      # Restore signing.properties
+      - name: Restore signing.properties
+        run: |
+          echo "${{ inputs.signing_b64 }}" | base64 --decode > android/signing.properties
+          ls -l android/
+
+      - name: Restore Play JSON
+        run: |
+          echo "${{ inputs.play_json_b64 }}" | base64 --decode > google-play-key.json
+
+      - name: Restore .env file
+        run: |
+          echo "${{ inputs.env_b64 }}" | base64 --decode > .env
+
+      - name: Generate env.g.dart (Build Runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      ## Fastlane Bundler Caching (Restorer)
+
+      # 1. Restore Gemfile and Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # 2. Setup Ruby and restore gems using Bundler cache
+      - name: Setup Ruby and Restore Gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          # Restores installed gems based on the restored Gemfile.lock hash.
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY }}
+
+      # --- Gradle Cache ---
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          #          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+          cache-read-only: false
+
+      # --- Build Step ---
+      - name: Build AppBundle (AAB)
+        run: |
+          flutter build appbundle \
+            --flavor ${{ inputs.flavor }} \
+            --release \
+            -t lib/main_${{ inputs.flavor }}.dart
+
+      # --- Artifacts ---
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.flavor }}-build
+          path: build/app/outputs/bundle/${{ inputs.flavor }}Release/*.aab
