@@ -6,7 +6,9 @@ on:
       flavor:
         type: string
         required: true
-    secrets: inherit
+#      secrets:
+#        ENCRYPTION_KEY:
+#          required: true
 
 jobs:
   upload:
