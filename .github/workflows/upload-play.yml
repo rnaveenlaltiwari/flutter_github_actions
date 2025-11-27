@@ -13,6 +13,9 @@ on:
 #        ENCRYPTION_KEY:
 #          required: true
 
+env:
+  WORKING_DIRECTORY: .
+
 jobs:
   upload:
     name: Upload ${{ inputs.flavor }} to Play Store
