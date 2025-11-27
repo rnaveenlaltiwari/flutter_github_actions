@@ -19,7 +19,7 @@ env:
 
 jobs:
   setup:
-#    name: Caching
+    name: Caching
     runs-on: macos-latest
     defaults:
       run:
