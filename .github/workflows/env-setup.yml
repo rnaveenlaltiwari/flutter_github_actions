@@ -1,6 +1,6 @@
 name: Reusable - Setup Android + Flutter + Ruby + Caches
 
-#on:
+on:
 #  workflow_call:
 #    secrets:
 #      ENCRYPTION_KEY:
