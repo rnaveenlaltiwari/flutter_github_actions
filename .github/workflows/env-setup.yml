@@ -2,6 +2,27 @@ name: Reusable - Setup Android + Flutter + Ruby + Caches
 
 on:
   workflow_call:
+    inputs:
+      FLUTTER_VERSION:
+        required: true
+      ANDROID_SDK_VER:
+        required: true
+      ANDROID_PLATFORM_VER:
+        required: true
+      ANDROID_SDK_VER_2:
+        required: true
+      ANDROID_PLATFORM_VER_2:
+        required: true
+      ANDROID_PLATFORM_VER_3:
+        required: true
+      NDK_VER:
+        required: true
+      CMD_LINE_TOOL_VERSION:
+        required: true
+      WORKING_DIRECTORY:
+        required: true
+      GRADLE_VERSION:
+        required: true
 
 jobs:
   setup:
@@ -9,7 +30,7 @@ jobs:
     runs-on: macos-latest
     defaults:
       run:
-        working-directory: ${{ env.WORKING_DIRECTORY}}
+        working-directory: ${{ inputs.WORKING_DIRECTORY}}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,16 +41,16 @@ jobs:
         with:
           cache-disabled: false
           # Define a unique key for the Android SDK/NDK cache
-          cache-key: android-${{ runner.os }}-${{ env.ANDROID_SDK_VER }}-${{ env.NDK_VER }}
+          cache-key: android-${{ runner.os }}-${{ inputs.ANDROID_SDK_VER }}-${{ inputs.NDK_VER }}
           # Specify all required SDK versions for cache provisioning
           sdk-version: |
-            ${{ env.ANDROID_PLATFORM_VER }}
-            ${{ env.ANDROID_PLATFORM_VER_2 }}
-            ${{ env.ANDROID_PLATFORM_VER_3 }}
+            ${{ inputs.ANDROID_PLATFORM_VER }}
+            ${{ inputs.ANDROID_PLATFORM_VER_2 }}
+            ${{ inputs.ANDROID_PLATFORM_VER_3 }}
           build-tools-version: |
-            ${{ env.ANDROID_SDK_VER_2 }}
-          ndk-version: ${{ env.NDK_VER }}
-          command-line-tools-version: ${{ env.CMD_LINE_TOOL_VERSION }}
+            ${{ inputs.ANDROID_SDK_VER_2 }}
+          ndk-version: ${{ inputs.NDK_VER }}
+          command-line-tools-version: ${{ inputs.CMD_LINE_TOOL_VERSION }}
           generate-job-summary: false
 
       # --- Flutter SDK Setup ---
@@ -37,7 +58,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ inputs.FLUTTER_VERSION }}
           # Enable built-in caching for Flutter SDK and artifacts
           cache: true
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
@@ -51,7 +72,7 @@ jobs:
 
       # 1. Create a minimal Gemfile with the public source
       - name: Create Gemfile for Fastlane
-        working-directory: ${{ env.WORKING_DIRECTORY}}
+        working-directory: ${{ inputs.WORKING_DIRECTORY}}
         run: |
           echo 'source "https://rubygems.org"' > Gemfile
           echo "gem 'fastlane'" >> Gemfile
@@ -62,8 +83,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            ${{ env.WORKING_DIRECTORY }}/Gemfile
-            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+            ${{ inputs.WORKING_DIRECTORY }}/Gemfile
+            ${{ inputs.WORKING_DIRECTORY }}/Gemfile.lock
           key: ${{ runner.os }}-bundler-files-3.2
           # Use restore-keys in case the primary key changes
           restore-keys: |
@@ -78,7 +99,7 @@ jobs:
           # 1. Restoring the gem cache (keyed by Gemfile.lock hash).
           # 2. Running 'bundle install' and saving the new cache if a miss occurs.
           bundler-cache: true
-          working-directory: ${{ env.WORKING_DIRECTORY}}
+          working-directory: ${{ inputs.WORKING_DIRECTORY}}
 
       # 4. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
       - name: Save Bundler Files Cache
@@ -86,8 +107,8 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            ${{ env.WORKING_DIRECTORY }}/Gemfile
-            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+            ${{ inputs.WORKING_DIRECTORY }}/Gemfile
+            ${{ inputs.WORKING_DIRECTORY }}/Gemfile.lock
           # Key is simple since the files content is static for a given ruby version
           key: ${{ runner.os }}-bundler-files-3.2
 
@@ -95,6 +116,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
-          gradle-version: ${{ env.GRADLE_VERSION }}
-          #          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
+          gradle-version: ${{ inputs.GRADLE_VERSION }}
+          #          build-root-directory: ${{ inputs.WORKING_DIRECTORY }}/android
           cache-read-only: false

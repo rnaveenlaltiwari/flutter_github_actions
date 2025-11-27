@@ -48,6 +48,7 @@ jobs:
     uses: ./.github/workflows/decrypt-config.yml
     with:
       input-flavor: ${{ github.event.inputs.flavor }}
+      WORKING_DIRECTORY: ${{ env.WORKING_DIRECTORY }}
     secrets: inherit
 
   # ----------------------------------------------------------
@@ -56,7 +57,18 @@ jobs:
   setup:
     needs: prepare
     uses: ./.github/workflows/env-setup.yml
-#    secrets: inherit
+    with:
+      WORKING_DIRECTORY: ${{ env.WORKING_DIRECTORY }}
+      FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+      ANDROID_SDK_VER: ${{ env.ANDROID_SDK_VER }}
+      ANDROID_SDK_VER_2: ${{ env.ANDROID_SDK_VER_2 }}
+      ANDROID_PLATFORM_VER: ${{ env.ANDROID_PLATFORM_VER }}
+      ANDROID_PLATFORM_VER_2: ${{ env.ANDROID_PLATFORM_VER_2 }}
+      ANDROID_PLATFORM_VER_3: ${{ env.ANDROID_PLATFORM_VER_3 }}
+      NDK_VER: ${{ env.NDK_VER }}
+      CMD_LINE_TOOL_VERSION: ${{ env.CMD_LINE_TOOL_VERSION }}
+      GRADLE_VERSION: ${{ env.GRADLE_VERSION }}
+  #    secrets: inherit
 
   # ----------------------------------------------------------
   # JOB 3: Build AAB for each flavor via matrix
@@ -76,6 +88,16 @@ jobs:
       env_b64: ${{ needs.prepare.outputs.env_b64 }}
       play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
       keystore_json: ${{ needs.prepare.outputs.keystore_json }}
+      WORKING_DIRECTORY: ${{ env.WORKING_DIRECTORY }}
+      FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+      ANDROID_SDK_VER: ${{ env.ANDROID_SDK_VER }}
+      ANDROID_SDK_VER_2: ${{ env.ANDROID_SDK_VER_2 }}
+      ANDROID_PLATFORM_VER: ${{ env.ANDROID_PLATFORM_VER }}
+      ANDROID_PLATFORM_VER_2: ${{ env.ANDROID_PLATFORM_VER_2 }}
+      ANDROID_PLATFORM_VER_3: ${{ env.ANDROID_PLATFORM_VER_3 }}
+      NDK_VER: ${{ env.NDK_VER }}
+      CMD_LINE_TOOL_VERSION: ${{ env.CMD_LINE_TOOL_VERSION }}
+      GRADLE_VERSION: ${{ env.GRADLE_VERSION }}
 #    secrets: inherit
 
   # ----------------------------------------------------------

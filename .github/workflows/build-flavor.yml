@@ -21,6 +21,26 @@ on:
       keystore_json:
         type: string
         required: true
+      FLUTTER_VERSION:
+        required: true
+      ANDROID_SDK_VER:
+        required: true
+      ANDROID_PLATFORM_VER:
+        required: true
+      ANDROID_SDK_VER_2:
+        required: true
+      ANDROID_PLATFORM_VER_2:
+        required: true
+      ANDROID_PLATFORM_VER_3:
+        required: true
+      NDK_VER:
+        required: true
+      CMD_LINE_TOOL_VERSION:
+        required: true
+      WORKING_DIRECTORY:
+        required: true
+      GRADLE_VERSION:
+        required: true
 #      secrets:
 #        ENCRYPTION_KEY:
 #          required: true
