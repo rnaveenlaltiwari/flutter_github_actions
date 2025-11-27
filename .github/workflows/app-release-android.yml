@@ -56,7 +56,7 @@ jobs:
   setup:
     needs: prepare
     uses: ./.github/workflows/env-setup.yml
-    secrets: inherit
+#    secrets: inherit
 
   # ----------------------------------------------------------
   # JOB 3: Build AAB for each flavor via matrix
