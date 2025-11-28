@@ -40,10 +40,10 @@ jobs:
   # ----------------------------------------------------------
   # JOB 2: Setup Flutter, Android, Ruby, Bundler, Gradle caches
   # ----------------------------------------------------------
-#  setup:
-#    name: Setup
-#    needs: prepare
-#    uses: ./.github/workflows/caching-setup.yml
+  setup:
+    name: Setup
+    needs: prepare
+    uses: ./.github/workflows/caching-setup-ubuntu.yml
   #    secrets: inherit
 
   # ----------------------------------------------------------
