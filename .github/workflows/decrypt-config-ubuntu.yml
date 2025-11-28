@@ -55,10 +55,6 @@ jobs:
             -in config.json.enc -out config.json \
             -base64 -pass pass:"$ENCRYPTION_KEY"
 
-      - name: Load config.json
-        id: cfg
-        run: echo "json=$(cat config.json)" >> $GITHUB_OUTPUT
-
       # ---- Base64 encode config ----
       - name: Load config.json as Base64
         id: config-file
@@ -73,7 +69,7 @@ jobs:
           INPUT_FLAVOR="${{ inputs.input-flavor }}"
 
           if [ "$INPUT_FLAVOR" = "all" ]; then
-            FLAVORS_TO_BUILD='${{ toJson(keys(fromJson(steps.cfg.outputs.json).apps)) }}'
+            FLAVORS_TO_BUILD=$(python3 -c "import json; print(json.dumps(list(json.load(open('config.json'))['apps'].keys())))")
           else
             FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
           fi
