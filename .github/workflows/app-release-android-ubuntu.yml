@@ -1,0 +1,69 @@
+name: Ubuntu Modular reusable workflows
+
+# ------------------------------------------------------------------------------
+# 1. Trigger Configuration
+# ------------------------------------------------------------------------------
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Choose which flavor to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+          - bookmark
+
+# Uncomment these sections to enable triggers on push or pull_request events
+#  push:
+#    branches:
+#      - feature/*
+#  pull_request:
+#    branches:
+#      - production_v2
+
+jobs:
+  # ----------------------------------------------------------
+  # JOB 1: Decrypt config & prepare base64 assets + flavor list
+  # ----------------------------------------------------------
+  prepare:
+    name: Prepare
+    uses: ./.github/workflows/decrypt-config-ubuntu.yml
+    with:
+      input-flavor: ${{ github.event.inputs.flavor }}
+    secrets: inherit
+
+  # ----------------------------------------------------------
+  # JOB 2: Setup Flutter, Android, Ruby, Bundler, Gradle caches
+  # ----------------------------------------------------------
+#  setup:
+#    name: Setup
+#    needs: prepare
+#    uses: ./.github/workflows/caching-setup.yml
+  #    secrets: inherit
+
+  # ----------------------------------------------------------
+  # JOB 3: Build AAB for each flavor via matrix
+  # ----------------------------------------------------------
+#  build:
+#    name: Build & Upload
+#    needs: [prepare, setup]
+#    strategy:
+#      fail-fast: true
+#      max-parallel: 2
+#      matrix:
+#        flavor: ${{ fromJson(needs.prepare.outputs.flavors-json) }}
+#    uses: ./.github/workflows/build-and-upload-flavor.yml
+#    with:
+#      flavor: ${{ matrix.flavor }}
+#      config_b64: ${{ needs.prepare.outputs.config_b64 }}
+#      signing_b64: ${{ needs.prepare.outputs.signing_b64 }}
+#      env_b64: ${{ needs.prepare.outputs.env_b64 }}
+#      keystore_json: ${{ needs.prepare.outputs.keystore_json }}
+#      play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
+#    secrets: inherit
+
