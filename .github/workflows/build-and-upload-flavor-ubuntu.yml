@@ -40,7 +40,7 @@ env:
   NDK_VER: "29.0.14033849"
   CMD_LINE_TOOL_VERSION: 10406996
   WORKING_DIRECTORY: .
-  GRADLE_VERSION: 8.9
+  GRADLE_VERSION: '8.9'
 
 jobs:
   build:
@@ -119,8 +119,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
-          #          build-root-directory: ${{ env.WORKING_DIRECTORY }}/android
           cache-read-only: false
+          cache-cleanup: never
 
       # --- Build Step ---
       - name: Build AppBundle (AAB)
