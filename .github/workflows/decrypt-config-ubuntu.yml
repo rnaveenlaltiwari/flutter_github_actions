@@ -63,18 +63,18 @@ jobs:
           echo "config_b64=$CONFIG_B64" >> $GITHUB_OUTPUT
 
       # ---- Flavor Extraction ----
-#      - name: Get and Filter flavors from config.json
-#        id: get-flavors
-#        run: |
-#          INPUT_FLAVOR="${{ inputs.input-flavor }}"
-#
-#          if [ "$INPUT_FLAVOR" == "all" ]; then
-#            FLAVORS_TO_BUILD=$(jq -c '.apps | keys' config.json)
-#          else
-#            FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
-#          fi
+      - name: Get and Filter flavors from config.json
+        id: get-flavors
+        run: |
+          INPUT_FLAVOR="${{ inputs.input-flavor }}"
           
-#          echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
+          if [ "$INPUT_FLAVOR" = "all" ]; then
+            FLAVORS_TO_BUILD="${{ toJson(keys(fromJson(steps.config-file.outputs.config_b64 | base64decode | fromJson).apps)) }}"
+          else
+            FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
+          fi
+
+          echo "flavors-json=$FLAVORS_TO_BUILD" >> $GITHUB_OUTPUT
 
       # ---- Create keystore JSON (per app) ----
 #      - name: Keystores
