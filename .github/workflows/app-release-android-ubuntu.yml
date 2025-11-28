@@ -68,6 +68,7 @@ jobs:
   build:
     name: Build & Upload
     needs: [prepare, setup, first-build]
+    if: ${{ needs.prepare.outputs.flavors-json != '[]' }}
     strategy:
       fail-fast: true
       max-parallel: 2
