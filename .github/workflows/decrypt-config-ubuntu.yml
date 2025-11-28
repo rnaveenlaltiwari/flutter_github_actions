@@ -108,7 +108,8 @@ jobs:
             FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
           fi
           
-          echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
+          CLEAN_JSON=$(echo "$FLAVORS_TO_BUILD" | jq -c '.')
+          echo "flavors-json=$CLEAN_JSON" >> "$GITHUB_OUTPUT"
 
       # ---- Create keystore JSON (per app) ----
       - name: Keystores
