@@ -49,21 +49,21 @@ jobs:
   # ----------------------------------------------------------
   # JOB 3: Build AAB for each flavor via matrix
   # ----------------------------------------------------------
-#  build:
-#    name: Build & Upload
-#    needs: [prepare, setup]
-#    strategy:
-#      fail-fast: true
-#      max-parallel: 2
-#      matrix:
-#        flavor: ${{ fromJson(needs.prepare.outputs.flavors-json) }}
-#    uses: ./.github/workflows/build-and-upload-flavor.yml
-#    with:
-#      flavor: ${{ matrix.flavor }}
-#      config_b64: ${{ needs.prepare.outputs.config_b64 }}
-#      signing_b64: ${{ needs.prepare.outputs.signing_b64 }}
-#      env_b64: ${{ needs.prepare.outputs.env_b64 }}
-#      keystore_json: ${{ needs.prepare.outputs.keystore_json }}
-#      play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
+  build:
+    name: Build & Upload
+    needs: [prepare, setup]
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        flavor: ${{ fromJson(needs.prepare.outputs.flavors-json) }}
+    uses: ./.github/workflows/build-and-upload-flavor-ubuntu.yml
+    with:
+      flavor: ${{ matrix.flavor }}
+      config_b64: ${{ needs.prepare.outputs.config_b64 }}
+      signing_b64: ${{ needs.prepare.outputs.signing_b64 }}
+      env_b64: ${{ needs.prepare.outputs.env_b64 }}
+      keystore_json: ${{ needs.prepare.outputs.keystore_json }}
+      play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
 #    secrets: inherit
 
