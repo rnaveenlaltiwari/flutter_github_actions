@@ -33,7 +33,6 @@ jobs:
   prepare:
     name: Prepare
     uses: ./.github/workflows/decrypt-config-ubuntu.yml
-    fail-fast: true
     with:
       input-flavor: ${{ github.event.inputs.flavor }}
     secrets: inherit
@@ -44,7 +43,6 @@ jobs:
   setup:
     name: Setup
     needs: prepare
-    fail-fast: true
     uses: ./.github/workflows/caching-setup-ubuntu.yml
   #    secrets: inherit
 
