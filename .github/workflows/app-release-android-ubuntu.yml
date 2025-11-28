@@ -32,6 +32,8 @@ jobs:
   # ----------------------------------------------------------
   prepare:
     name: Prepare
+    strategy:
+      fail-fast: true
     uses: ./.github/workflows/decrypt-config-ubuntu.yml
     with:
       input-flavor: ${{ github.event.inputs.flavor }}
@@ -43,6 +45,8 @@ jobs:
   setup:
     name: Setup
     needs: prepare
+    strategy:
+      fail-fast: true
     uses: ./.github/workflows/caching-setup-ubuntu.yml
   #    secrets: inherit
 
@@ -50,7 +54,7 @@ jobs:
   # JOB 3: Build First AAB
   # ----------------------------------------------------------
   first-build:
-    name: Build First AAB
+    name: Build & Upload (${{ needs.prepare.outputs.first_flavor }})
     needs: [prepare, setup]
     strategy:
       fail-fast: true

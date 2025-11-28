@@ -90,6 +90,7 @@ jobs:
         id: get-flavors
         run: |
           INPUT_FLAVOR="${{ inputs.input-flavor }}"
+          FIRST_FLAVOR="${{ steps.first-flavor.outputs.first_flavor }}"
 
           if [ "$INPUT_FLAVOR" == "all" ]; then
             # Get all app keys as an array
@@ -104,10 +105,16 @@ jobs:
               # Skip the first app
               FLAVORS_TO_BUILD=$(echo "$ALL_APPS" | jq '.[1:]')
             fi
+
           else
-            FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
+            if [ "$FIRST_FLAVOR" == "$INPUT_FLAVOR" ]; then
+              FLAVORS_TO_BUILD="[]"
+            else
+              FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
+            fi
           fi
-          
+
+          # Clean JSON
           CLEAN_JSON=$(echo "$FLAVORS_TO_BUILD" | jq -c '.')
           echo "flavors-json=$CLEAN_JSON" >> "$GITHUB_OUTPUT"
 
