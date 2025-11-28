@@ -33,6 +33,7 @@ jobs:
   prepare:
     name: Prepare
     uses: ./.github/workflows/decrypt-config-ubuntu.yml
+    fail-fast: true
     with:
       input-flavor: ${{ github.event.inputs.flavor }}
     secrets: inherit
@@ -43,11 +44,30 @@ jobs:
   setup:
     name: Setup
     needs: prepare
+    fail-fast: true
     uses: ./.github/workflows/caching-setup-ubuntu.yml
   #    secrets: inherit
 
   # ----------------------------------------------------------
-  # JOB 3: Build AAB for each flavor via matrix
+  # JOB 3: Build First AAB
+  # ----------------------------------------------------------
+  first-build:
+    name: Build First AAB
+    needs: [prepare, setup]
+    strategy:
+      fail-fast: true
+    uses: ./.github/workflows/build-and-upload-flavor-ubuntu.yml
+    with:
+      flavor: ${{ needs.prepare.outputs.first_flavor }}
+      config_b64: ${{ needs.prepare.outputs.config_b64 }}
+      signing_b64: ${{ needs.prepare.outputs.signing_b64 }}
+      env_b64: ${{ needs.prepare.outputs.env_b64 }}
+      keystore_json: ${{ needs.prepare.outputs.keystore_json }}
+      play_json_b64: ${{ needs.prepare.outputs.play_json_b64 }}
+#    secrets: inherit
+
+  # ----------------------------------------------------------
+  # JOB 4: Build AAB for each flavor via matrix except the first one
   # ----------------------------------------------------------
   build:
     name: Build & Upload

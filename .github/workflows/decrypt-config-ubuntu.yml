@@ -23,6 +23,8 @@ on:
         value: ${{ jobs.prepare.outputs.env_b64 }}
       keystore_json:
         value: ${{ jobs.prepare.outputs.keystore_json }}
+      first_flavor:
+        value: ${{ jobs.prepare.outputs.first_flavor }}
 
 env:
   WORKING_DIRECTORY: .
@@ -41,6 +43,7 @@ jobs:
       play_json_b64: ${{ steps.play-json.outputs.play_json_b64 }}
       env_b64: ${{ steps.env-file.outputs.env_b64 }}
       keystore_json: ${{ steps.keystores.outputs.keystore_json }}
+      first_flavor: ${{ steps.first-flavor.outputs.first_flavor }}
 
     steps:
       - name: Checkout code
@@ -67,14 +70,40 @@ jobs:
           CONFIG_B64=$(base64 -w 0 config.json)
           echo "config_b64=$CONFIG_B64" >> $GITHUB_OUTPUT
 
+      - name: Get First Flavor
+        id: first-flavor
+        run: |
+          INPUT_FLAVOR="${{ inputs.input-flavor }}"
+          
+          if [ "$INPUT_FLAVOR" == "all" ]; then
+            # Get first app key from config.json
+            FIRST_APP=$(jq -r '.apps | keys[0]' config.json)
+            FIRST_FLAVOR="$FIRST_APP"
+          else
+            FIRST_FLAVOR="$INPUT_FLAVOR"
+          fi
+            
+          echo "first_flavor=$FIRST_FLAVOR" >> "$GITHUB_OUTPUT"
+
       # ---- Flavor Extraction ----
       - name: Get and Filter flavors from config.json
         id: get-flavors
         run: |
           INPUT_FLAVOR="${{ inputs.input-flavor }}"
-          
+
           if [ "$INPUT_FLAVOR" == "all" ]; then
-            FLAVORS_TO_BUILD=$(jq -c '.apps | keys' config.json)
+            # Get all app keys as an array
+            ALL_APPS=$(jq -c '.apps | keys' config.json)
+          
+            # Count number of apps
+            COUNT=$(echo "$ALL_APPS" | jq 'length')
+          
+            if [ "$COUNT" -le 1 ]; then
+              FLAVORS_TO_BUILD="[]"
+            else
+              # Skip the first app
+              FLAVORS_TO_BUILD=$(echo "$ALL_APPS" | jq '.[1:]')
+            fi
           else
             FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
           fi
