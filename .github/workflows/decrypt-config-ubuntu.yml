@@ -59,7 +59,7 @@ jobs:
       - name: Load config.json as Base64
         id: config-file
         run: |
-          CONFIG_B64=$(base64 < config.json)
+          CONFIG_B64=$(base64 -w 0 config.json)
           echo "config_b64=$CONFIG_B64" >> $GITHUB_OUTPUT
 
       # ---- Flavor Extraction ----
