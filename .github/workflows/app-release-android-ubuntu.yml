@@ -26,11 +26,6 @@ on:
 #    branches:
 #      - production_v2
 
-env:
-  # If push -> "all", else -> workflow_dispatch input
-  resolved_flavor: ${{ github.event_name == 'push' && 'all' || github.event.inputs.flavor }}
-
-
 jobs:
   # ----------------------------------------------------------
   # JOB 1: Decrypt config & prepare base64 assets + flavor list
@@ -39,7 +34,7 @@ jobs:
     name: Prepare
     uses: ./.github/workflows/decrypt-config-ubuntu.yml
     with:
-      input-flavor: ${{ env.resolved_flavor }}
+      input-flavor: ${{ github.event_name == 'push' && 'all' || github.event.inputs.flavor }}
     secrets: inherit
 
   # ----------------------------------------------------------
