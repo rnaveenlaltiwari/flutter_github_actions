@@ -86,7 +86,7 @@ jobs:
           echo "first_flavor=$FIRST_FLAVOR" >> "$GITHUB_OUTPUT"
 
       # ---- Flavor Extraction ----
-      - name: Get and Filter flavors from config.json
+      - name: Get Rest of the Flavors
         id: get-flavors
         run: |
           INPUT_FLAVOR="${{ inputs.input-flavor }}"

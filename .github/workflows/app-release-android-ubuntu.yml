@@ -19,12 +19,12 @@ on:
           - bookmark
 
 # Uncomment these sections to enable triggers on push or pull_request events
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
 #  pull_request:
 #    branches:
-#      - production_v2
+#      - main
 
 jobs:
   # ----------------------------------------------------------
