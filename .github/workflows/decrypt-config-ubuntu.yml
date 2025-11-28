@@ -75,7 +75,7 @@ jobs:
           fi
 
           echo "flavors-json=$FLAVORS_TO_BUILD" >> $GITHUB_OUTPUT
-          echo "${flavors-json}"
+          echo "${FLAVORS_TO_BUILD}"
 
       # ---- Create keystore JSON (per app) ----
 #      - name: Keystores
