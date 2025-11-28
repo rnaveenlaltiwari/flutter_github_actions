@@ -1,4 +1,4 @@
-name: Reusable - Decrypt and Prepare Config
+name: Ubuntu Reusable - Decrypt and Prepare Config
 
 on:
   workflow_call:
