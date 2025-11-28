@@ -69,7 +69,7 @@ jobs:
   # ----------------------------------------------------------
   build:
     name: Build & Upload
-    needs: [prepare, setup]
+    needs: [prepare, setup, first-build]
     strategy:
       fail-fast: true
       max-parallel: 2
