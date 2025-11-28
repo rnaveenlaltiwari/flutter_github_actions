@@ -19,12 +19,17 @@ on:
           - bookmark
 
 # Uncomment these sections to enable triggers on push or pull_request events
-#  push:
-#    branches:
-#      - feature/*
+  push:
+    branches:
+      - main
 #  pull_request:
 #    branches:
 #      - production_v2
+
+env:
+  # If push -> "all", else -> workflow_dispatch input
+  resolved_flavor: ${{ github.event_name == 'push' && 'all' || github.event.inputs.flavor }}
+
 
 jobs:
   # ----------------------------------------------------------
@@ -34,7 +39,7 @@ jobs:
     name: Prepare
     uses: ./.github/workflows/decrypt-config-ubuntu.yml
     with:
-      input-flavor: ${{ github.event.inputs.flavor }}
+      input-flavor: ${{ env.resolved_flavor }}
     secrets: inherit
 
   # ----------------------------------------------------------
