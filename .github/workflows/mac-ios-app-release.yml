@@ -1,0 +1,289 @@
+name: MAC iOS App Release
+
+# ------------------------------------------------------------------------------
+# 1. Trigger Configuration
+# ------------------------------------------------------------------------------
+on:
+  # Allows manual execution of the workflow via the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Choose which flavor to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - checkcircle
+          - favorite
+          - star
+          - bookmark
+
+# Uncomment these sections to enable triggers on push or pull_request events
+#  push:
+#    branches:
+#      - feature/*
+#  pull_request:
+#    branches:
+#      - production_v2
+
+# ------------------------------------------------------------------------------
+# 2. Global Environment Variables
+# ------------------------------------------------------------------------------
+env:
+  FLUTTER_VERSION: 3.24.5
+  WORKING_DIRECTORY: .
+
+# ------------------------------------------------------------------------------
+# 3. Jobs
+# ------------------------------------------------------------------------------
+jobs:
+  # Job 1: Dynamically determine the list of flavors to build.
+  extract-flavors:
+    name: Determine Build Matrix
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+    # Pass the list of flavors (as a JSON array) to the next job.
+    outputs:
+      config_b64: ${{ steps.config-file.outputs.config_b64 }}
+      env_b64: ${{ steps.env-file.outputs.env_b64 }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq (JSON processor)
+        run: |
+          if ! command -v jq &> /dev/null; then
+            brew install jq
+          else
+            echo "jq already installed"
+          fi
+
+      - name: Decrypt config.json
+        # Uses a repository secret to decrypt the configuration file.
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          openssl enc -aes-256-cbc -d -salt \
+            -in config.json.enc -out config.json \
+            -base64 -pass pass:"$ENCRYPTION_KEY"
+
+      - name: Load config.json as Base64
+        id: config-file
+        run: |
+          CONFIG_B64=$(base64 < config.json)
+          echo "config_b64=$CONFIG_B64" >> $GITHUB_OUTPUT
+
+      - name: Get and Filter flavors from config.json
+        id: get-flavors
+        run: |
+          INPUT_FLAVOR="${{ github.event.inputs.flavor }}"
+          
+          if [ "$INPUT_FLAVOR" == "all" ]; then
+            # Output the full list of flavor keys if 'all' is selected
+            FLAVORS_TO_BUILD=$(jq -c '.apps | keys' config.json)
+          else
+            # Output only the specified flavor in a JSON array
+            FLAVORS_TO_BUILD="[\"$INPUT_FLAVOR\"]"
+          fi
+          
+          # Set the output variable for the next job's matrix
+          echo "flavors-json=$FLAVORS_TO_BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Generate .env content
+        id: env-file
+        run: |
+          ENV_CONTENT=$(jq -r '.common.env | to_entries[] | "\(.key)=\(.value)"' config.json)
+          ENV_B64=$(printf "%s" "$ENV_CONTENT" | base64)
+          echo "env_b64=$ENV_B64" >> $GITHUB_OUTPUT
+
+  # Job 2: Setup all dependencies and populate the shared caches.
+  setup-caches:
+    name: Setup Environment & Caches
+    needs: extract-flavors # Must run after flavor list is determined
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Flutter SDK Setup ---
+      - name: Set up Flutter (Cache & Install)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # Enable built-in caching for Flutter SDK and artifacts
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      # --- Flutter Getting Plugins ---
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      ## Fastlane Bundler Caching (Provider)
+
+      # 1. Create a minimal Gemfile with the public source
+      - name: Create Gemfile for Fastlane
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+        run: |
+          echo 'source "https://rubygems.org"' > Gemfile
+          echo "gem 'fastlane'" >> Gemfile
+
+      # 2. 🔍 CHECK/RESTORE Cache for Gemfile/Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          # Use restore-keys in case the primary key changes
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # 3. Setup Ruby and use Bundler to install/cache gems
+      - name: Setup Ruby, Restore/Install Gems (Bundler)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          # 'bundler-cache: true' manages:
+          # 1. Restoring the gem cache (keyed by Gemfile.lock hash).
+          # 2. Running 'bundle install' and saving the new cache if a miss occurs.
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY}}
+
+      # 4. Cache Gemfile and Gemfile.lock (for use by 'build' jobs)
+      - name: Save Bundler Files Cache
+        if: steps.restore_bundler_files.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          # Key is simple since the files content is static for a given ruby version
+          key: ${{ runner.os }}-bundler-files-3.2
+
+  # Job 3: Build, Sign, and Distribute the Android App for each flavor.
+  build:
+    name: Build & Deploy ${{ matrix.flavor }}
+    needs: [extract-flavors, setup-caches]
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY}}
+    # Strategy to run a separate job for each flavor (parallelism limited to 2)
+    strategy:
+      fail-fast: true
+      max-parallel: 2  # limits parallel jobs to prevent memory overload
+      matrix:
+        flavor: ${{ fromJson(needs.extract-flavors.outputs.flavors-json) }}
+    env:
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      BUILD_FLAVOR: ${{ github.event.inputs.flavor || 'bookmark' }} # Default is 'bookmark' if input is null
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Restore Flutter SDK & Artifacts ---
+      - name: Restore Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      # Restore config.json
+      - name: Restore config.json
+        run: |
+          echo "${{ needs.extract-flavors.outputs.config_b64 }}" | base64 --decode > config.json
+
+
+      - name: Restore .env file
+        run: |
+          echo "${{ needs.extract-flavors.outputs.env_b64 }}" | base64 --decode > .env
+
+      - name: Generate env.g.dart (Build Runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      ## Fastlane Bundler Caching (Restorer)
+
+      # 1. Restore Gemfile and Gemfile.lock
+      - name: Restore Bundler Files Cache
+        id: restore_bundler_files
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/Gemfile
+            ${{ env.WORKING_DIRECTORY }}/Gemfile.lock
+          key: ${{ runner.os }}-bundler-files-3.2
+          restore-keys: |
+            ${{ runner.os }}-bundler-files-
+
+      # 2. Setup Ruby and restore gems using Bundler cache
+      - name: Setup Ruby and Restore Gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          # Restores installed gems based on the restored Gemfile.lock hash.
+          bundler-cache: true
+          working-directory: ${{ env.WORKING_DIRECTORY }}
+
+      # --- Build Step ---
+#      - name: Build AppBundle (AAB)
+#        run: |
+#          bundle exec fastlane beta flavor:${{ matrix.flavor }}
+
+#      # --- Artifacts ---
+#      - name: Upload AAB artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ matrix.flavor }}-build
+#          path: build/app/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+#
+#      # --- Distribution ---
+#      - name: Upload to Play Distribution with Fastlane
+#        run: |
+#          FLAVOR=${{ matrix.flavor }}
+#          AAB="build/app/outputs/bundle/${FLAVOR}Release/app-${FLAVOR}-release.aab"
+#          KEY="google-play-key.json"
+#
+#          # Get the package name from the properties file
+#          PKG=$(grep "^${FLAVOR}\.applicationId=" android/flavors.properties | cut -d'=' -f2)
+#
+#          echo "Uploading AAB for flavor: $FLAVOR"
+#
+#          # allow command failure
+#          set +e
+#
+#          # Run fastlane and capture output
+#          FASTLANE_OUTPUT=$(bundle exec fastlane supply \
+#            --aab "$AAB" \
+#            --package_name "$PKG" \
+#            --track production \
+#            --json_key "$KEY" \
+#            --metadata_path "./release-notes/metadata/android" \
+#            --rollout 1.0 \
+#            --skip_upload_metadata true \
+#            --skip_upload_images true \
+#            --skip_upload_screenshots true 2>&1 | tee /dev/tty)
+#
+#          EXIT_CODE=${PIPESTATUS[0]}  # capture exit code from fastlane
+#
+#          set -e  # restore normal behavior
+#
+#          if [ $EXIT_CODE -ne 0 ]; then
+#            echo "::error ::${FASTLANE_OUTPUT//$'\n'/'%0A'}"
+#          else
+#            echo "::notice ::Play Store upload SUCCESS for flavor: $FLAVOR"
+#          fi
