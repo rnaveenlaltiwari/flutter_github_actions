@@ -47,6 +47,7 @@ jobs:
         working-directory: ${{ env.WORKING_DIRECTORY}}
     # Pass the list of flavors (as a JSON array) to the next job.
     outputs:
+      flavors-json: ${{ steps.get-flavors.outputs.flavors-json }}
       config_b64: ${{ steps.config-file.outputs.config_b64 }}
       env_b64: ${{ steps.env-file.outputs.env_b64 }}
 
